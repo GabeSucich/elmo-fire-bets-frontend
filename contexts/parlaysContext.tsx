@@ -1,0 +1,76 @@
+import React, { createContext, useContext, ReactNode, useState } from "react";
+
+export type ParlayTab = "Building" | "Open" | "Closed" | "My Lays"
+
+interface ParlaysContextType {
+    refreshParlays: () => void
+    refreshParlay: (parlayId: number) => void
+    navToTab: (tab: ParlayTab) => void
+    focusedParlayId: number | null
+    setFocusedParlayId: (id: number | null) => void
+    handleSwapSelect: (parlayId: number) => void
+    isStagedForSwap: (parlayId: number) => boolean
+}
+
+const ParlaysContext = createContext<ParlaysContextType | null>(null);
+
+interface ParlaysProviderProps {
+    children: ReactNode
+    refreshParlays: () => void
+    refreshParlay: (parlayId: number) => void
+    navToTab: (tab: ParlayTab) => void
+    swapParlays: (parlayId1: number, parlayId2: number) => void
+}
+
+export function ParlaysProvider({ 
+    children, 
+    refreshParlays,
+    refreshParlay,
+    navToTab,
+    swapParlays
+}: ParlaysProviderProps) {
+    const [focusedParlayId, setFocusedParlayId] = useState<number | null>(null)
+    const [swapIds, setSwapIds] = useState<number[]>([])
+
+    function handleSwapSelect(parlayId: number) {
+        if (swapIds.length === 0) {
+            setSwapIds([parlayId])
+        } else if (swapIds.length === 1) {
+            const otherSwapId = swapIds[0]
+            if (otherSwapId === parlayId) {
+                setSwapIds([])
+            } else {
+                setSwapIds([])
+                swapParlays(parlayId, otherSwapId)
+            }
+        }
+    }
+
+    function isStagedForSwap(parlayId: number) {
+        return swapIds.includes(parlayId)
+    }
+
+    return (
+        <ParlaysContext.Provider 
+        value={{ 
+            refreshParlays, 
+            refreshParlay, 
+            navToTab, 
+            focusedParlayId, 
+            setFocusedParlayId,
+            isStagedForSwap,
+            handleSwapSelect
+        }}
+        >
+            {children}
+        </ParlaysContext.Provider>
+    );
+}
+
+export function useParlaysContext() {
+    const context = useContext(ParlaysContext);
+    if (!context) {
+        throw new Error("useParlaysContext must be called from within a ParlaysProvider");
+    }
+    return context;
+}

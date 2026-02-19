@@ -1,0 +1,17 @@
+{
+  "cli": {
+    "version": ">= 15.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "production": {
+      "ios": {
+        "distribution": "store",
+        "autoIncrement": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://uvicorn-main-production-aec8.up.railway.app"
+      }
+    }
+  }
+}
