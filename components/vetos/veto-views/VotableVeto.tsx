@@ -1,10 +1,13 @@
-import { PickResponseData, PickVetoResponseData, VetoApprovalStatus } from "@/api";
+import { PickResponseData, PickVetoResponseData, VetoApprovalStatus, VetoesService } from "@/api";
 import React from "react";
 import { Text, View } from "react-native";
 import VetoProgress from "./VetoProgress";
 import ActionButton from "../../reusable/ActionButton";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import VetoPickDisplay from "./VetoPickDisplay";
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import useApiActionState from "@/composables/useApiActionState";
+import OverlayLoader from "../../reusable/OverlayLoader";
 
 type Props = {
     pick: PickResponseData
@@ -13,12 +16,16 @@ type Props = {
     vetoeeName: string
     remainingAffirmativeVotesNeeded: number
     remainingNonAffirmativeVotesNeeded: number
-    handleVote: (affirmative: boolean) => void
+    onSubmitVote: () => void
 }
 
 export default function VotableVeto(props: Props) {
-    const { pick, veto, vetoerName, vetoeeName, remainingAffirmativeVotesNeeded, remainingNonAffirmativeVotesNeeded, handleVote } = props
+    const { pick, veto, vetoerName, vetoeeName, remainingAffirmativeVotesNeeded, remainingNonAffirmativeVotesNeeded } = props
     const status = veto.approval_status
+
+    const {
+        error, loading, setError, setLoading
+    } = useErrorLoadingStates()
 
     const { gamblerId } = useGamblingSeasonContext()
 
@@ -27,6 +34,19 @@ export default function VotableVeto(props: Props) {
 
     const myVoteIsAffirmative = veto.votes.some(v => v.gambler_id === gamblerId && v.affirmative)
     const myVoteIsNegative = veto.votes.some(v => v.gambler_id === gamblerId && !v.affirmative)
+    
+    const {
+        execute: submitVote
+    } = useApiActionState(
+        (affirmative: boolean) => VetoesService.submitVetoVote(props.veto.id, {
+            affirmative,
+            gambler_id: gamblerId
+        }),
+        res => props.onSubmitVote(),
+        setLoading,
+        setError,
+        "There was an error submitting your vote"
+    )
 
     if (status === VetoApprovalStatus.APPROVED || status === VetoApprovalStatus.REJECTED) {
         return null
@@ -45,6 +65,7 @@ export default function VotableVeto(props: Props) {
     if (status === VetoApprovalStatus.PENDING) {
         return (
             <View style={{ padding: 12 }}>
+                {loading && <OverlayLoader />}
                 <VetoPickDisplay veto={veto} pick={pick} vetoeeName={vetoeeName} vetoerName={vetoerName}/>
                 <VetoProgress
                     veto={veto}
@@ -66,8 +87,8 @@ export default function VotableVeto(props: Props) {
                                 </Text>
                             )}
                             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 16 }}>
-                                <ActionButton text="Reject" onPress={() => handleVote(false)} disabled={myVoteIsNegative} color="#dc2626" />
-                                <ActionButton text="Approve" onPress={() => handleVote(true)} disabled={myVoteIsAffirmative} color="#16a34a" />
+                                <ActionButton text="Reject" onPress={() => submitVote(false)} disabled={myVoteIsNegative} color="#dc2626" />
+                                <ActionButton text="Approve" onPress={() => submitVote(true)} disabled={myVoteIsAffirmative} color="#16a34a" />
                             </View>
                         </View>
                         

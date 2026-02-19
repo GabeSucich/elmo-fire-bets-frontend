@@ -8,8 +8,10 @@ import { ParlayCard } from "./ParlayCard";
 import { setApiErrorMsg } from "@/util/error";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import { PickResultColors } from "@/util/pickResults";
-import ActivityLoader from "../reusable/ActivityLoader";
+import OverlayLoader from "../reusable/OverlayLoader";
 import { useParlaysContext } from "@/contexts/parlaysContext";
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import useApiActionState from "@/composables/useApiActionState";
 
 type Props = {
     parlay: ParlayResponseData
@@ -18,8 +20,9 @@ type Props = {
 
 export default function ParlayFinalization({ parlay, onDone }: Props) {
 
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const {
+        error, loading, setError, setLoading
+    } = useErrorLoadingStates()
 
     const {
         refreshParlays,
@@ -33,32 +36,40 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
     
     const allPicksHaveResults = parlay.picks.every(pick => !!pick.result)
 
-    function finalizeParlay() {
-        setLoading(true)
-        setError(null)
-        setFinalizedParlay(null)
-        setPossibleResults([])
-        setSelectedResult(null)
-        ParlaysService.finalizeParlayResult(parlay.id, {})
-        .then(res => {
-            setFinalizedParlay(res.parlay)
+    const {
+        execute: finalizeParlay
+    } = useApiActionState(
+        () => ParlaysService.finalizeParlayResult(parlay.id, {}),
+        res => {
+            setFinalizedParlay(res.parlay),
             setPossibleResults(res.possible_results)
-        }).catch(e => setApiErrorMsg(e, setError, "There was an error calcuting the parlay result"))
-        .finally(() => setLoading(false))
-    }
+        },
+        setLoading,
+        setError,
+        "There was an error computing parlay results"
+    )
 
-    function closeParlay(result: ParlayResult) {
-        setLoading(true)
-        setError(null)
-        ParlaysService.closeParlay(parlay.id, {parlay_result: result})
-        .then(res => {
+    const {
+        execute: closeParlay
+    } = useApiActionState(
+        (result: ParlayResult) => ParlaysService.closeParlay(parlay.id, {parlay_result: result}),
+        res => {
             refreshParlays()
             navToTab("Closed")
             setFocusedParlayId(parlay.id)
             onDone()
-        })
-        .catch(e => setApiErrorMsg(e, setError, "There was an error closing the parlay"))
-        .finally(() => setLoading(false))
+        },
+        setLoading,
+        setError,
+        "There was an error closing the parlay"
+    )
+    
+
+    function handleFinalizeParlay() {
+        setFinalizedParlay(null)
+        setPossibleResults([])
+        setSelectedResult(null)
+        finalizeParlay()
     }
 
     if (!allPicksHaveResults) {
@@ -69,15 +80,13 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
     
     return (
         <View>
+            {loading && <OverlayLoader />}
             <ParlayCard pickTileSize="xs" parlay={finalizedParlay || parlay} editable={false} hideFooter={true} disableResultEditing={true}/>
             <View style={{alignItems: "flex-end", marginBottom: 10}}>
-                <ActionButton text="Compute Possible Results" onPress={() => finalizeParlay()} />
+                <ActionButton text="Compute Possible Results" onPress={handleFinalizeParlay} />
             </View>
             {
-                loading && <ActivityLoader indicatorProps={{size: "small"}} />
-            }
-            {
-                !loading && finalizedParlay && possibleResults.length > 0 && (
+                finalizedParlay && possibleResults.length > 0 && (
                     <View style={{alignContent: "center"}}>
                         <Text style={{fontStyle: "italic", marginBottom: 10}}>Possible results. Go back and edit picks if this does not look right.</Text>
                         <SelectableTileGroup<ParlayResult>
@@ -99,7 +108,7 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
                 )
             }
             {
-                !loading && finalizedParlay && possibleResults.length === 0 && (
+                finalizedParlay && possibleResults.length === 0 && (
                     <View style={{alignContent: "center", paddingVertical: 10}}>
                         <Text 
                         style={{fontStyle: "italic", color: "red", marginBottom: 10}}>

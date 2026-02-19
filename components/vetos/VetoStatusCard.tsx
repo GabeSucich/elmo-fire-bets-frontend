@@ -11,7 +11,7 @@ type Props = {
     veto: PickVetoResponseData
     gamblerId: number
     onDeleteVeto: () => void
-    onSubmitVote: (affirmative: boolean) => void
+    onSubmitVote: () => void
 }
 
 export default function VetoStatusCard(props: Props) {
@@ -36,29 +36,6 @@ export default function VetoStatusCard(props: Props) {
     const remainingAffirmativeVotesNeeded = affirmativeVotesNeeded - affirmativeVoteCount
     const reaminingNonAffirmativeVotesNeeded = nonAffirmativeVotesNeeded - nonAffirmativeVoteCount
 
-    function submitVetoVote(affirmative: boolean) {
-        setLoading(true)
-        setError(null)
-        VetoesService.submitVetoVote(props.veto.id, {
-            affirmative,
-            gambler_id: gamblerId
-        })
-        .then(res => props.onSubmitVote(affirmative))
-        .catch(e => setApiErrorMsg(e, setError, "There was an error submitting the vote"))
-        .finally(() => setLoading(false))
-    }
-
-    function deleteVeto() {
-        console.log("DELETING!")
-        if (!amVetoer) return
-        setLoading(true)
-        setError(null)
-        VetoesService.deleteVeto(props.veto.id)
-            .then(res => props.onDeleteVeto())
-            .catch(e => setApiErrorMsg(e, setError, "There was an error deleting the veto"))
-            .finally(() => setLoading(false))
-    }
-
     if (props.pick.veto?.approval_status === VetoApprovalStatus.APPROVED) {
         return <VetoPickDisplay 
             pick={props.pick} 
@@ -74,7 +51,7 @@ export default function VetoStatusCard(props: Props) {
             veto={props.veto} 
             vetoeeName={vetoeeName} 
             vetoerName={vetoerName}
-            onDelete={deleteVeto}
+            onDelete={props.onDeleteVeto}
         />
     }
 
@@ -85,7 +62,7 @@ export default function VetoStatusCard(props: Props) {
         vetoeeName={vetoeeName}
         remainingAffirmativeVotesNeeded={remainingAffirmativeVotesNeeded}
         remainingNonAffirmativeVotesNeeded={reaminingNonAffirmativeVotesNeeded}
-        handleVote={submitVetoVote}
+        onSubmitVote={props.onSubmitVote}
     />
 
 }

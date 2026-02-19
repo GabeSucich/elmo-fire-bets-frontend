@@ -1,41 +1,28 @@
 import { setApiErrorMsg } from "@/util/error";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction } from "react";
 
-export default function useApiActionState<T>(
-    action: () => Promise<T>,
-    handlers: {
-        setLoading: (loading: boolean) => void,
-        setError: (error: any) => void
-    },
-    extraHandlers?: {
-        onStart?: () => void
-        onSuccess?: (result: T) => void
-        onError?: (e: any) => void
-        onDone?: () => void
-    },
-    defaultErrorMsg?: string
+export default function useApiActionState<U extends unknown[], V>(
+    action: (...args: U) => Promise<V>,
+    withResult: (result: V) => any | null,
+    setLoading: Dispatch<SetStateAction<boolean>>,
+    setError: Dispatch<SetStateAction<string | null>>,
+    defaultErrorMsg: string
 ) {
-    const {
-        onDone,
-        onError,
-        onSuccess,
-        onStart
-    } = extraHandlers ?? {}
 
-    function execute() {
-        if (onStart) onStart()
-        action()
+    function execute(...args: U) {
+        setLoading(true)
+        setError(null)
+        action(...args)
             .then(res => {
-                if (!onSuccess) return
-                return onSuccess(res)
+                if (withResult) return withResult(res)
             })
             .catch(e => {
-                if (!onError) return
-                return onError(e)
+                setApiErrorMsg(e, setError, defaultErrorMsg ?? "An unexpected issue occurred...")
+                return
             })
             .finally(() => {
-                if (!onDone) return
-                return onDone()
+                setLoading(false)
+
             })
 
     }

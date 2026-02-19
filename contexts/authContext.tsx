@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, ReactNode, useState, useE
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ApiError, AuthService } from "../api";
 import { setApiErrorMsg } from "@/util/error";
-import { makeErrorLoadingStates } from "@/util/errorLoadingUtil";
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
 
 export interface User {
   id: number;
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     setLoading,
     setError
-  } = makeErrorLoadingStates()
+  } = useErrorLoadingStates()
 
   const [user, setUser] = useState<User | null>(null)
 

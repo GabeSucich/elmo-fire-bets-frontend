@@ -1,13 +1,13 @@
 import { ParlayResponseData, PickResponseData, PicksService } from "@/api"
-import { Gambler, useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
+import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { Text, View } from "react-native"
 import PickEditor from "./PickEditor"
 import { PickCreateEditData } from "./common"
-import { useState } from "react"
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch"
-import { setApiErrorMsg } from "@/util/error"
 import ErrorView from "../reusable/ErrorView"
-import ActivityLoader from "../reusable/ActivityLoader"
+import OverlayLoader from "../reusable/OverlayLoader"
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates"
+import useApiActionState from "@/composables/useApiActionState"
 
 type Props = {
     pick: PickResponseData | null
@@ -21,15 +21,16 @@ export default function OwnerPickEditor(props: Props) {
         gamblers
     } = useGamblingSeasonContext()
 
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const {
+        error, loading, setError, setLoading
+    } = useErrorLoadingStates()
 
     const gambler = gamblers[props.gamblerId]
 
-    function createPick(pick: PickCreateEditData) {
-        setLoading(true)
-        setError(null)
-        PicksService.createPick({
+    const {
+        execute: createPick
+    } = useApiActionState(
+        (pick: PickCreateEditData) => PicksService.createPick({
             prop_type: pick.propType,
             target: playerTeamResultToRequestData(pick.playerTeamResult),
             line: pick.line,
@@ -38,30 +39,32 @@ export default function OwnerPickEditor(props: Props) {
             corrected_line: pick.line,
             gambler_id: props.gamblerId,
             sauce_factor: pick.sauceFactor
-        })
-        .then(res => props.onPickCorrected(res.pick))
-        .catch(e => setApiErrorMsg(e, setError, "There was an error creating the pick"))
-        .finally(() => setLoading(false))
-    }
+        }),
+        res => props.onPickCorrected(res.pick),
+        setLoading,
+        setError,
+        "There was an error creating the pick"
+    )
 
-    function overridePick(existingPick: PickResponseData, updateData: PickCreateEditData) {
-        setLoading(true)
-        setError(null)
-        PicksService.applyPickOverride(existingPick.id, {
-            prop_type: updateData.propType,
-            target: playerTeamResultToRequestData(updateData.playerTeamResult),
-            line: updateData.line,
-            direction: updateData.direction,
-            sauce_factor: updateData.sauceFactor,
-        })
-        .then(res => props.onPickCorrected(res.pick))
-        .catch(e => setApiErrorMsg(e, setError, "There wasn an error updating the pick"))
-        .finally(() => setLoading(false))
-    }
+    const {
+        execute: overridePick
+    } = useApiActionState(
+        (args: { existingPick: PickResponseData, updateData: PickCreateEditData }) => PicksService.applyPickOverride(args.existingPick.id, {
+            prop_type: args.updateData.propType,
+            target: playerTeamResultToRequestData(args.updateData.playerTeamResult),
+            line: args.updateData.line,
+            direction: args.updateData.direction,
+            sauce_factor: args.updateData.sauceFactor,
+        }),
+        res => props.onPickCorrected(res.pick),
+        setLoading,
+        setError,
+        "There was an error updating the pick"
+    )
 
     function handleEdit(updateData: PickCreateEditData) {
         if (props.pick) {
-            overridePick(props.pick, updateData)
+            overridePick({ existingPick: props.pick, updateData })
         } else {
             createPick(updateData)
         }
@@ -69,18 +72,12 @@ export default function OwnerPickEditor(props: Props) {
 
     const gamblerFirstName = gamblers[props.gamblerId].firstName
     const title = props.pick ? `Correcting pick for ${gamblerFirstName}` : `Adding pick for ${gamblerFirstName}`
-    
-    if (loading) {
-        return <ActivityLoader 
-            indicatorProps={{size: "small"}}
-            text={`Saving correction for ${gambler.firstName}...`}
-        />
-    }
 
     return (
         <View>
+            {loading && <OverlayLoader loaderProps={{text: `Saving correction for ${gambler.firstName}...`, size: 20}} />}
             <Text style={{fontWeight: 'bold', fontStyle: 'italic', textAlign: 'center'}}>{ title }</Text>
-            <PickEditor 
+            <PickEditor
                 pick={props.pick}
                 handleEdit={handleEdit}
                 showDeleteVetoOption={true}

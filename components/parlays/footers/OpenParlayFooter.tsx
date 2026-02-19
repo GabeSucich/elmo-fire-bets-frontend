@@ -1,6 +1,5 @@
-import { ParlayResponseData, ParlaysService, ParlayState } from "@/api";
+import { ParlayResponseData, ParlayState } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
-import { setApiErrorMsg } from "@/util/error";
 import React, { useState } from "react";
 import { View } from "react-native";
 import PickCorrectionsModal from "../modals/PickCorrectionsModal";
@@ -15,12 +14,9 @@ type Props = {
 }
 
 export default function OpenParlayFooter({ parlay }: Props) {
-    const [error, setError] = useState<string | null>(null)
-    const [loading, setLoading] = useState(false)
     const [pickCorrectionVisible, setPickCorrectionVisible] = useState(false)
     const [finalizationVisible, setFinalizationVisible] = useState(false)
     const [unlockVisible, setUnlockVisible] = useState(false)
-
 
     const {
         gamblerId,
@@ -29,10 +25,11 @@ export default function OpenParlayFooter({ parlay }: Props) {
     } = useGamblingSeasonContext()
 
     const {
-        refreshParlays,
-        refreshParlay,
         navToTab,
-        setFocusedParlayId
+        setFocusedParlayId,
+        unlockParlay: contextUnlockParlay,
+        claimParlay,
+        refreshParlays
     } = useParlaysContext()
 
     const isMyOwnedParlay = parlay.owner_id === gamblerId
@@ -45,25 +42,11 @@ export default function OpenParlayFooter({ parlay }: Props) {
 
     const addCorrectionsText = `Add Corrections${uncorrectedPickCnt > 0 ? " (" + uncorrectedPickCnt.toString() + ")" : ''}`
 
-    function claimParlay() {
-        setLoading(true)
-        setError(null)
-        ParlaysService.claimParlay(parlay.id, { gambler_id: gamblerId })
-            .then(res => {
-                refreshParlay(parlay.id)
-            })
-            .catch(err => setApiErrorMsg(err, setError, "There was an error claiming the lay"))
-            .finally(() => setLoading(false))
-    }
-
     function unlockParlay() {
-        setLoading(true)
-        setError(null)
-        ParlaysService.unlockParlay(parlay.id, {})
-        .then(res => {
+        contextUnlockParlay(parlay.id, () => {
             refreshParlays()
             navToTab("Building")
-            setFocusedParlayId(res.parlay.id)
+            setFocusedParlayId(parlay.id)
         })
     }
 
@@ -109,7 +92,7 @@ export default function OpenParlayFooter({ parlay }: Props) {
     const ownerName = gamblers[parlay.owner_id].firstName
     return (
         <View style={{ alignItems: 'flex-start', marginTop: 8 }}>
-            <ActionButton text={`Claim from ${ownerName}`} onPress={() => claimParlay()} />
+            <ActionButton text={`Claim from ${ownerName}`} onPress={() => claimParlay(parlay.id, gamblerId)} />
         </View>
     )
 }

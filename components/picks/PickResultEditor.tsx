@@ -5,10 +5,11 @@ import { Text, TouchableOpacity, View } from "react-native"
 import PickDisplay from "./PickDisplay"
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup"
 import { getBasicPickResultColor, sortedBasicPickResults } from "@/util/pickResults"
-import { setApiErrorMsg } from "@/util/error"
-import ActivityLoader from "../reusable/ActivityLoader"
+import OverlayLoader from "../reusable/OverlayLoader"
 import ErrorView from "../reusable/ErrorView"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates"
+import useApiActionState from "@/composables/useApiActionState"
 
 type Props = {
     pick: PickResponseData
@@ -36,8 +37,9 @@ function mapPickResult(pick: PickResponseData) {
 const SORTED_RESULTS = sortedBasicPickResults()
 
 export default function PickResultEditor(props: Props) {
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const {
+        error, setError, loading, setLoading
+    } = useErrorLoadingStates()
     
     const currentPickResult = mapPickResult(props.pick)
     const [result, setResult] = useState<BasicPickResult | null>(currentPickResult)
@@ -51,15 +53,15 @@ export default function PickResultEditor(props: Props) {
         return !!result && result !== currentPickResult
     }
 
-    function updateResult(result: BasicPickResult) {
-        setLoading(true)
-        PicksService.updatePickResult(props.pick.id, {
-            result
-        })
-        .then(res => props.onUpdated(res.pick))
-        .catch(e => setApiErrorMsg(e, setError, "There was an error updating the pick result!"))
-        .finally(() => setLoading(false))
-    }
+    const {
+        execute: updateResult
+    } = useApiActionState(
+        (result: BasicPickResult) => PicksService.updatePickResult(props.pick.id, {result}),
+        res => props.onUpdated(res.pick),
+        setLoading,
+        setError,
+        "There was an error updating the pick results"
+    )
 
     function handleSubmit() {
         if (result) updateResult(result)
@@ -71,12 +73,9 @@ export default function PickResultEditor(props: Props) {
         `${gamblerFirstName} was vetoed successfuly by ${vetoerFirstName}. Enter the result for the INITIAL pick, not the vetoed pick.`
     )
 
-    if (loading) {
-        return <ActivityLoader indicatorProps={{size: "small"}} text="Updating result..."/>
-    }
-
     return (
         <View>
+            {loading && <OverlayLoader loaderProps={{text: "Updating result...", size: 20}} />}
             <Text style={{fontWeight: "bold", alignSelf: "center", marginVertical: 8}}>{title}</Text>
             {
                 hasApprovedVeto && (

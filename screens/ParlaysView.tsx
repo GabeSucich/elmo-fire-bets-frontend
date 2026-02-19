@@ -1,16 +1,14 @@
-import React, { act, useEffect, useState } from "react"
+import React, { useState } from "react"
 import { useListParlays } from "@/composables/useListParlays"
-import { View, TouchableOpacity, StyleSheet, Modal } from "react-native"
+import { View, TouchableOpacity, StyleSheet } from "react-native"
 import ParlayTabButtons from "@/components/reusable/TabButtons"
 import ParlaysList from "@/components/parlays/ParlaysList"
-import ParlayEditCard from "@/components/parlays/ParlayEditCard"
-import { GetSeasonParlaysSortParam, ParlaysService, ParlayState } from "@/api"
-import { setApiErrorMsg } from "@/util/error"
+import { GetSeasonParlaysSortParam, ParlayState, UpdateParlayRequestData } from "@/api"
 import { ParlaysProvider } from "@/contexts/parlaysContext"
-import { ParlayEditArgs } from "@/components/parlays/common"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import FontAwesome from "react-native-vector-icons/FontAwesome"
+import CreateParlayModal from "@/components/parlays/modals/CreateParlayModal"
 
 export type ParlayTab = "Building" | "Open" | "Closed" | "My Lays"
 
@@ -22,8 +20,6 @@ export default function ParlaysView(props: Props) {
 
     const { gamblerId } = useGamblingSeasonContext()
 
-    const [generalLoading, setGeneralLoading] = useState(false)
-    const [generalError, setGeneralError] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<ParlayTab>("Building")
     const [isModalVisible, setIsModalVisible] = useState(false)
 
@@ -31,34 +27,52 @@ export default function ParlaysView(props: Props) {
         parlays: buildingParlays,
         loadNextParlays: loadNextBuildingParlays,
         canLoadMore: canLoadMoreBuilding,
-        bulkLoading: buildingLoading,
-        bulkError: buildingError,
+        parlaysLoading: buildingLoading,
+        parlaysError: buildingError,
         refreshParlays: refreshBuildingParlays,
         refreshParlay: refreshBuildingParlay,
         parlayLoadingStates: buildingParlayLoadingStates,
-        swapParlays: swapBuildingParlays
+        swapParlays: swapBuildingParlays,
+        deleteParlay: deleteBuildingParlay,
+        claimParlay: claimBuildingParlay,
+        updateParlay: updateBuildingParlay,
+        lockParlay: lockBuildingParlay,
+        unlockParlay: unlockBuildingParlay,
+        reopenParlay: reopenBuildingParlay,
     } = useListParlays(props.seasonId, ParlayState.BUILDING)
 
     const {
         parlays: openParlays,
         loadNextParlays: loadNextOpenParlays,
         canLoadMore: canLoadMoreOpen,
-        bulkLoading: openLoading,
-        bulkError: openError,
+        parlaysLoading: openLoading,
+        parlaysError: openError,
         refreshParlays: refreshOpenParlays,
         parlayLoadingStates: openParlayLoadingStates,
-        refreshParlay: refreshOpenParlay
+        refreshParlay: refreshOpenParlay,
+        deleteParlay: deleteOpenParlay,
+        claimParlay: claimOpenParlay,
+        updateParlay: updateOpenParlay,
+        lockParlay: lockOpenParlay,
+        unlockParlay: unlockOpenParlay,
+        reopenParlay: reopenOpenParlay
     } = useListParlays(props.seasonId, ParlayState.OPEN)
 
     const {
         parlays: closedParlays,
         loadNextParlays: loadNextClosedParlays,
         canLoadMore: canLoadMoreClosed,
-        bulkLoading: closedLoading,
-        bulkError: closedError,
+        parlaysLoading: closedLoading,
+        parlaysError: closedError,
         refreshParlays: refreshClosedParlays,
         parlayLoadingStates: closedParlayLoadingStates,
         refreshParlay: refreshClosedParlay,
+        deleteParlay: deleteClosedParlay,
+        claimParlay: claimClosedParlay,
+        updateParlay: updateClosedParlay,
+        lockParlay: lockClosedParlay,
+        unlockParlay: unlockClosedParlay,
+        reopenParlay: reopenClosedParlay
     } = useListParlays(props.seasonId, ParlayState.CLOSED, {sort: GetSeasonParlaysSortParam.DESC})
 
     function myLays() {
@@ -113,21 +127,6 @@ export default function ParlaysView(props: Props) {
         }
     }
 
-    function createParlay(args: ParlayEditArgs) {
-        return ParlaysService.createParlay({
-            gambling_season_id: props.seasonId,
-            slate_type: args.slateType,
-            competition_date: args.competitionDate,
-            owner_id: args.ownerId,
-            wager_pp: args.wagerPp
-        }).then(res => {
-            refreshBuildingParlays()
-            setIsModalVisible(false)
-        }).catch(err => {
-            setApiErrorMsg(err, setGeneralError, "Error creating new parlay")
-        }).finally(() => setGeneralLoading(false))
-    }
-
     function refreshAllParlays() {
         refreshBuildingParlays()
         refreshOpenParlays()
@@ -144,12 +143,54 @@ export default function ParlaysView(props: Props) {
         }
     }
 
+    function claimParlay(parlayId: number, gamblerId: number) {
+        if (buildingParlays.some(p => p.id === parlayId)) return claimBuildingParlay(parlayId, gamblerId)
+        if (openParlays.some(p => p.id === parlayId)) return claimOpenParlay(parlayId, gamblerId)
+        if (closedParlays.some(p => p.id === parlayId)) return claimClosedParlay(parlayId, gamblerId)
+    }
+
+    function updateParlay(request: UpdateParlayRequestData) {
+        if (buildingParlays.some(p => p.id === request.parlay_id)) return updateBuildingParlay(request)
+        if (openParlays.some(p => p.id === request.parlay_id)) return updateOpenParlay(request)
+        if (closedParlays.some(p => p.id === request.parlay_id)) return updateClosedParlay(request)
+    }
+
+    function lockParlay(parlayId: number, afterLock: (parlayId: number) => void) {
+        if (buildingParlays.some(p => p.id === parlayId)) return lockBuildingParlay(parlayId, afterLock)
+        if (openParlays.some(p => p.id === parlayId)) return lockOpenParlay(parlayId, afterLock)
+        if (closedParlays.some(p => p.id === parlayId)) return lockClosedParlay(parlayId, afterLock)
+    }
+
+    function unlockParlay(parlayId: number, afterUnlock: (parlayId: number) => void) {
+        if (buildingParlays.some(p => p.id === parlayId)) return unlockBuildingParlay(parlayId, afterUnlock)
+        if (openParlays.some(p => p.id === parlayId)) return unlockOpenParlay(parlayId, afterUnlock)
+        if (closedParlays.some(p => p.id === parlayId)) return unlockClosedParlay(parlayId, afterUnlock)
+    }
+
+    function reopenParlay(parlayId: number, afterReopen: (parlayId: number) => void) {
+        if (buildingParlays.some(p => p.id === parlayId)) return reopenBuildingParlay(parlayId, afterReopen)
+        if (openParlays.some(p => p.id === parlayId)) return reopenOpenParlay(parlayId, afterReopen)
+        if (closedParlays.some(p => p.id === parlayId)) return reopenClosedParlay(parlayId, afterReopen)
+    }
+
+    function deleteParlay(parlayId: number) {
+        if (buildingParlays.some(p => p.id === parlayId)) return deleteBuildingParlay(parlayId)
+        if (openParlays.some(p => p.id === parlayId)) return deleteOpenParlay(parlayId)
+        if (closedParlays.some(p => p.id === parlayId)) return deleteClosedParlay(parlayId)
+    }
+
     return (
         <ParlaysProvider 
             refreshParlays={refreshAllParlays}
             refreshParlay={refreshParlay}
             navToTab={setActiveTab}
             swapParlays={swapBuildingParlays}
+            updateParlay={updateParlay}
+            deleteParlay={deleteParlay}
+            lockParlay={lockParlay}
+            unlockParlay={unlockParlay}
+            reopenParlay={reopenParlay}
+            claimParlay={claimParlay}
         >
             <View style={styles.container}>
             <View style={styles.topButtons}>
@@ -171,24 +212,11 @@ export default function ParlaysView(props: Props) {
                 size="sm"
             />
             {VisibleParlays()}
-            <Modal
+            <CreateParlayModal
                 visible={isModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setIsModalVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsModalVisible(false)}
-                >
-                    <TouchableOpacity activeOpacity={1} onPress={() => {}} style={styles.modalContent}>
-                        <ParlayEditCard
-                            handleEdit={createParlay}
-                        />
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
+                onClose={() => setIsModalVisible(false)}
+                seasonId={props.seasonId}
+            />
         </View>
         </ParlaysProvider>
     )
@@ -206,16 +234,5 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-    },
-    modalContent: {
-        width: "100%",
-        maxWidth: 400,
     },
 })

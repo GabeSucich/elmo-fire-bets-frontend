@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 20,
+    backgroundColor: "#000000",
   },
   buttonDisabled: {
     backgroundColor: "#A0A0A0",
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     fontSize: 16,
+    backgroundColor: "#ffffff",
   },
   error: {
     color: "red",

@@ -10,6 +10,9 @@ import { ActivityIndicator, View } from "react-native";
 import { GamblingSeasonProvider } from "@/contexts/gamblingSeasonContext";
 import AnalyticsView from "./AnalyticsView";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
+import useApiActionState from "@/composables/useApiActionState";
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import ErrorView from "@/components/reusable/ErrorView";
 
 type NavigationProp = NativeStackNavigationProp<MainStackParamList, "Season">
 type SeasonViewRouteProps = RouteProp<MainStackParamList, "Season">
@@ -24,16 +27,36 @@ export default function SeasonView() {
     const route = useRoute<SeasonViewRouteProps>()
     const seasonId = route.params.season.seasonId
 
+    const {
+        error, loading, setError, setLoading
+    } = useErrorLoadingStates()
+
     const [gamblingSeason, setGamblingSeason] = useState<GetGamblingSeasonResponseData | null>(null)
 
+    const {
+        execute: getGamblingSeason
+    } = useApiActionState(
+        () => GamblingSeasonService.getGamblingSeason(seasonId),
+        setGamblingSeason,
+        setLoading,
+        setError,
+        "There was an error loading your gambling seasons."
+    )
+
     useEffect(() => {
-        GamblingSeasonService.getGamblingSeason(seasonId).then(res => {
-            setGamblingSeason(res)
-        })
+        getGamblingSeason()
     }, [])
 
+    if (loading) {
+        return <ActivityLoader key={"Different"} verticalAlign="center" text="Loading season data..."/>
+    }
+
+    if (error) {
+        return <ErrorView errorMsg={error}/>
+    }
+
     if (!gamblingSeason) {
-        return <ActivityLoader />
+        return null
     }
 
     return (

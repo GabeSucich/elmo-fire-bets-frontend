@@ -1,11 +1,14 @@
 import { PickResponseData, PicksService, UpdatePickRequestData, VetoApprovalStatus } from "@/api";
-import { setApiErrorMsg } from "@/util/error";
 import React, { useState } from "react";
 import { Modal, Text, View } from "react-native";
 import OutstandingVetoCard from "../vetos/OutstandingVetoCard";
 import { PickCreateEditData } from "./common";
 import PickEditor from "./PickEditor";
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch";
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import useApiActionState from "@/composables/useApiActionState";
+import ErrorView from "../reusable/ErrorView";
+import OverlayLoader from "../reusable/OverlayLoader";
 
 type Props = {
     parlayId: number,
@@ -15,8 +18,12 @@ type Props = {
 }
 
 export default function GamblerPickEditor(props: Props) {
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const [saving, setSaving] = useState(false)
+    const {
+        loading: saving,
+        setLoading: setSaving,
+        error,
+        setError
+    } = useErrorLoadingStates()
     const [vetoConfirmVisible, setVetoConfirmVisible] = useState(false)
     const [pendingEditData, setPendingEditData] = useState<PickCreateEditData | null>(null)
 
@@ -30,9 +37,8 @@ export default function GamblerPickEditor(props: Props) {
         )
     }
 
-    function createPick(data: PickCreateEditData) {
-        setSaving(true)
-        PicksService.createPick({
+    function _createPick(data: PickCreateEditData) {
+        return PicksService.createPick({
             parlay_id: props.parlayId,
             gambler_id: props.gamblerId,
             target: playerTeamResultToRequestData(data.playerTeamResult),
@@ -40,17 +46,31 @@ export default function GamblerPickEditor(props: Props) {
             line: data.line,
             sauce_factor: data.sauceFactor,
             prop_type: data.propType
-        }).then(res => {
-            props.onPickSaved(res.pick)
-        }).catch(error =>
-            setApiErrorMsg(error, setErrorMessage, "There was an error creating your pick")
-        ).finally(() => setSaving(false))
+        })
     }
 
-    function updatePick(existingPick: PickResponseData, data: PickCreateEditData) {
-        setSaving(true)
-        const updatePickRequest: UpdatePickRequestData = {}
+    const {
+        execute: createPick
+    } = useApiActionState(
+        _createPick,
+        res => props.onPickSaved(res.pick),
+        setSaving,
+        setError,
+        "There was an error submitting your pick"
+    )
 
+    const {
+        execute: updatePick
+    } = useApiActionState(
+        _updatePick,
+        res => props.onPickSaved(res.pick),
+        setSaving,
+        setError,
+        "There was an error saving your pick"
+    )
+
+    function _updatePick(existingPick: PickResponseData, data: PickCreateEditData) {
+        const updatePickRequest: UpdatePickRequestData = {}
         if (data.propType !== existingPick.prop_type) {
             updatePickRequest.prop_type = data.propType
         }
@@ -71,16 +91,10 @@ export default function GamblerPickEditor(props: Props) {
             }
         }
 
-        PicksService.updatePick(existingPick.id, updatePickRequest)
-            .then(result => {
-                props.onPickSaved(result.pick)
-            }).catch(e => {
-                setApiErrorMsg(e, setErrorMessage, "There was an error updating picks")
-            }).finally(() => setSaving(false))
+        return PicksService.updatePick(existingPick.id, updatePickRequest)
     }
 
     function handleEdit(data: PickCreateEditData) {
-        setErrorMessage(null)
         if (props.pick) {
             if (updateWillDeleteVeto(props.pick, data)) {
                 setPendingEditData(data)
@@ -100,15 +114,14 @@ export default function GamblerPickEditor(props: Props) {
                 handleEdit={handleEdit}
                 disabled={hasApprovedVeto || saving}
             />
+            {saving && <OverlayLoader />}
             {hasApprovedVeto && (
                 <Text style={{ color: 'red', fontStyle: 'italic', marginTop: 8, textAlign: 'center' }}>
                     Cannot edit a pick which has an approved veto
                 </Text>
             )}
-            {errorMessage && (
-                <Text style={{ color: 'red', marginTop: 12, textAlign: 'center' }}>
-                    {errorMessage}
-                </Text>
+            {error && (
+                <ErrorView errorMsg={error} />
             )}
             {props.pick?.veto && (
                 <Modal

@@ -29,7 +29,7 @@ export function SeasonSelectionScreen() {
 
   if (loading) {
     return (
-      <ActivityLoader/>
+      <ActivityLoader key={"this-first"} text="Loading seasons..."/>
     );
   }
 

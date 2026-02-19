@@ -36,8 +36,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/elmofire.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#ffffff",
           "dark": {
             "backgroundColor": "#000000"

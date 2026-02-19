@@ -4,6 +4,9 @@ import { setApiErrorMsg } from "@/util/error";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import PickDisplay from "../picks/PickDisplay";
+import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import useApiActionState from "@/composables/useApiActionState";
+import OverlayLoader from "../reusable/OverlayLoader";
 
 type Props = {
     pick: PickResponseData
@@ -16,27 +19,31 @@ export default function CreateVetoCard(props: Props) {
         gamblers
     } = useGamblingSeasonContext()
 
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const {
+        error, setError, loading, setLoading
+    } = useErrorLoadingStates()
 
     const vetoMessage = () => {
         return `Are you sure you want to veto ${gamblers[props.pick.gambler_id].firstName}'s pick?`
     }
 
-    function createVeto() {
-        setLoading(true)
-        setError(null)
-        VetoesService.createPickVeto({
+    const {
+        execute: createVeto
+    } = useApiActionState(
+        () => VetoesService.createPickVeto({
             pick_id: props.pick.id,
             gambler_id: gamblerId
-        }).then(res => {
-            props.onVetoCreated(res.veto.id)
-        }).catch(e => setApiErrorMsg(e, setError, "There was an error creating the veto"))
-        .finally(() => setLoading(false))
-    }
+        }),
+        res => props.onVetoCreated(res.veto.id),
+        setLoading,
+        setError,
+        "Error saving your veto"
+    )
+
 
     return (
         <View style={{ alignItems: 'center', padding: 0 }}>
+            {loading && <OverlayLoader />}
             <Text style={{ fontSize: 16, textAlign: 'center', marginBottom: 16 }}>
                 {vetoMessage()}
             </Text>
@@ -53,7 +60,7 @@ export default function CreateVetoCard(props: Props) {
                 }}
             >
                 <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-                    {loading ? 'Vetoing...' : 'Veto'}
+                    Veto
                 </Text>
             </Pressable>
             {error && (

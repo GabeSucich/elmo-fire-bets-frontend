@@ -1,25 +1,51 @@
-import { ActivityIndicator, ActivityIndicatorProps, ColorValue, Text, View } from "react-native"
+import { ColorValue, StyleProp, Text, View, ViewStyle } from "react-native"
 import {
   LoaderKitView,
-  IndicatorName
+  IndicatorName,
+  ALL_INDICATORS
 } from 'react-native-loader-kit';
 
-type Props = {
+export type ActivityLoaderProps = {
     text?: string
     name?: IndicatorName
     color?: ColorValue
+    verticalAlign?: "top" | "center"
+    containerStyle?: StyleProp<ViewStyle>
+    loaderStyle?: StyleProp<ViewStyle>
+    size?: number
 }
 
-export default function ActivityLoader(props: Props) {
-    const indicatorName: IndicatorName = props.name ?? "BallPulse"
+function getRandomIndicator(): IndicatorName {
+    return ALL_INDICATORS[Math.floor(Math.random() * ALL_INDICATORS.length)]
+}
+
+export default function ActivityLoader({
+    text,
+    name,
+    color="#000000",
+    verticalAlign="center",
+    containerStyle,
+    loaderStyle,
+    size=50
+}: ActivityLoaderProps) {
+    const indicatorName: IndicatorName = name ?? getRandomIndicator()
     return (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <LoaderKitView 
-                name={indicatorName} 
-                style={{ width: 50, height: 50 }}
-                color={props.color ?? "blue"}
+        <View style={[
+            { 
+                flex: 1, 
+                alignItems: "center", 
+                justifyContent: verticalAlign === "center" ? "center" : "flex-start",
+                marginTop: verticalAlign === "top" ? 20 : 0
+            },
+            containerStyle,
+        ]}>
+            <LoaderKitView
+                key={`loader-${text}`}
+                name={indicatorName}
+                style={[{ width: size, height: size }, loaderStyle]}
+                color={color}
             />
-            { props.text && <Text style={{ fontStyle: "italic" }}>{ props.text }</Text> }
+            { text && <Text style={{ fontStyle: "italic", color: color, marginTop: 20 }}>{ text }</Text> }
         </View>
     )
 }

@@ -1,18 +1,16 @@
 // components/ParlayCard.tsx
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Modal, Pressable } from "react-native";
-import { ParlayResponseData, PropBetDirection, PickResult, PickResponseData, ParlaysService, ParlayResult, ParlayState } from "@/api";
-import { Gambler, useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { ParlayResponseData, PickResponseData, ParlayResult, ParlayState } from "@/api";
+import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import GamblerParlaySlot from "../picks/GamblerParlaySlot";
 import { useParlaysContext } from "@/contexts/parlaysContext";
-import { ParlayEditArgs } from "./common";
-import { setApiErrorMsg } from "@/util/error";
-import ParlayEditCard from "./ParlayEditCard";
 import ParlayFooter from "./ParlayFooter";
 import { TileSize } from "../reusable/tiles/common";
 import { ParlayResultColors } from "@/util/pickResults";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import DeleteParlayModal from "./modals/DeleteParlayModal";
+import ParlayEditorModal from "./modals/ParlayEditorModal";
 
 interface ParlayCardProps {
   parlay: ParlayResponseData;
@@ -23,20 +21,20 @@ interface ParlayCardProps {
 }
 
 export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disableResultEditing }: ParlayCardProps) {
-  const [error, setError] = useState<string | null>("")
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const {
     gamblers,
-    sortedGamblers
+    sortedGamblers,
   } = useGamblingSeasonContext()
 
   const {
-    refreshParlay,
     refreshParlays,
     isStagedForSwap,
-    handleSwapSelect
+    handleSwapSelect,
+    deleteParlay
   } = useParlaysContext()
+
 
   function findPick(gamblerId: number): PickResponseData | null {
     return parlay.picks.find(pick => pick.gambler_id === gamblerId) ?? null
@@ -61,33 +59,6 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
   }
 
   const isBuilding = parlay.state === ParlayState.BUILDING
-
-  function deleteParlay() {
-    setError(null)
-    ParlaysService.deleteParlay(parlay.id)
-    .then(res => refreshParlays())
-    .catch(e => setApiErrorMsg(e, setError, "There was an error deleting the parlay!"))
-  }
-
-  function updateParlay(editArgs: ParlayEditArgs) {
-    setError(null)
-    const differentDate = editArgs.competitionDate !== parlay.competition_date
-    const differentSlateType = editArgs.slateType !== parlay.slate_type
-    const differentOwner = editArgs.ownerId !== parlay.owner_id
-    const differentWager = editArgs.wagerPp !== parlay.wager_pp
-    ParlaysService.updateParlay({
-      parlay_id: parlay.id,
-      competition_date: differentDate ? editArgs.competitionDate : null,
-      owner_id: differentOwner ? editArgs.ownerId : null,
-      slate_type: differentSlateType ? editArgs.slateType : null,
-      wager_pp: differentWager ? editArgs.wagerPp : null
-    }).then(res => {
-      setEditModalVisible(false)
-      refreshParlay(parlay.id)
-    }).catch(e => {
-
-    })
-  }
 
   return (
     <View style={styles.card}>
@@ -140,48 +111,17 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         parlay={parlay}
-        handleEdit={updateParlay}
       />
       <DeleteParlayModal
         visible={deleteModalVisible}
         onCancel={() => setDeleteModalVisible(false)}
         onDelete={() => {
           setDeleteModalVisible(false)
-          deleteParlay()
+          deleteParlay(parlay.id)
         }}
       />
     </View>
   );
-}
-
-type ParlayEditorModalProps = {
-  visible: boolean
-  onClose: () => void
-  parlay: ParlayResponseData
-  handleEdit: (args: ParlayEditArgs) => void
-}
-
-function ParlayEditorModal({ visible, onClose, parlay, handleEdit }: ParlayEditorModalProps) {
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-        <View style={{ width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20 }}>
-          <Pressable onPress={onClose}>
-            <Text style={{ fontSize: 18 }}>✕</Text>
-          </Pressable>
-          <ParlayEditCard
-            parlay={parlay}
-            handleEdit={handleEdit}
-          />
-        </View>
-      </View>
-    </Modal>
-  )
 }
 
 const styles = StyleSheet.create({

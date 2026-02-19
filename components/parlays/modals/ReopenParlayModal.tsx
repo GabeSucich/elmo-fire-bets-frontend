@@ -1,14 +1,31 @@
 import React from "react"
 import { Modal, Text, View } from "react-native"
 import ActionButton from "../../reusable/ActionButton"
+import { useParlaysContext } from "@/contexts/parlaysContext"
 
 type Props = {
     visible: boolean
+    parlayId: number
     onCancel: () => void
-    onSubmit: () => void
 }
 
-export default function ReopenParlayModal({ visible, onCancel, onSubmit }: Props) {
+export default function ReopenParlayModal({ visible, parlayId, onCancel }: Props) {
+    const {
+        reopenParlay,
+        refreshParlays,
+        navToTab,
+        setFocusedParlayId
+    } = useParlaysContext()
+
+    function handleReopen() {
+        onCancel()
+        reopenParlay(parlayId, () => {
+            refreshParlays()
+            navToTab("Open")
+            setFocusedParlayId(parlayId)
+        })
+    }
+
     return (
         <Modal
             visible={visible}
@@ -26,7 +43,7 @@ export default function ReopenParlayModal({ visible, onCancel, onSubmit }: Props
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
                         <ActionButton text="Cancel" onPress={onCancel} color="#e0e0e0" />
-                        <ActionButton text="Reopen Parlay" onPress={onSubmit} />
+                        <ActionButton text="Reopen Parlay" onPress={handleReopen} />
                     </View>
                 </View>
             </View>
