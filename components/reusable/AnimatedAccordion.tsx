@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { View } from "react-native"
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated"
+import { colors } from "@/theme/colors"
 
 type Props = {
     header: (toggle: () => void, open: boolean) => React.ReactNode

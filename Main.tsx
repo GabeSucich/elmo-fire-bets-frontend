@@ -2,14 +2,15 @@ import { GamblerSeason } from "@/composables/useListSeasons";
 import { User } from "@/contexts/authContext";
 import { SeasonSelectionScreen } from "@/screens/SeasonSelectionScreen";
 import SeasonView from "@/screens/SeasonView";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { colors } from "@/theme/colors";
 
 export type MainStackParamList = {
     SeasonSelector: {
         userId: number
     },
-    Season: { 
+    Season: {
         season: GamblerSeason,
     }
 }
@@ -20,10 +21,32 @@ type Props = {
     user: User
 }
 
+const AppTheme = {
+    ...DarkTheme,
+    colors: {
+        ...DarkTheme.colors,
+        background: colors.background,
+        card: colors.backgroundSecondary,
+        text: colors.textPrimary,
+        border: colors.cardBorder,
+        primary: colors.accent,
+    },
+};
+
 export default function Main({user}: Props) {
     return (
-        <NavigationContainer>
-                <Stack.Navigator>
+        <NavigationContainer theme={AppTheme}>
+                <Stack.Navigator
+                    screenOptions={{
+                        headerStyle: {
+                            backgroundColor: colors.backgroundSecondary,
+                        },
+                        headerTintColor: colors.textPrimary,
+                        headerTitleStyle: {
+                            fontWeight: '600',
+                        },
+                    }}
+                >
                     <Stack.Screen
                         name="SeasonSelector"
                         component={SeasonSelectionScreen}

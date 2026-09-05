@@ -2,6 +2,8 @@ import { PickVetoResponseData, VetoApprovalStatus } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import React from "react";
 import { View, Text } from "react-native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { colors, typography, spacing } from "@/theme/colors";
 
 type Props = {
     veto: PickVetoResponseData
@@ -22,21 +24,40 @@ export default function VetoStatusMini(props: Props) {
     if (isPending) {
         return (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ backgroundColor: '#e5e5e5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
-                    <Text style={{ color: '#666', textAlign: 'center' }}>
-                        {vetoingGamblerName} veto
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    borderRadius: 8,
+                }}>
+                    <Text style={{ color: colors.textSecondary, textAlign: 'center', ...typography.caption }}>
+                        {vetoingGamblerName} veto ⏳
                     </Text>
                 </View>
                 {affirmativeVotes > 0 && (
-                    <View style={{ backgroundColor: '#16a34a', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, marginLeft: 6 }}>
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>
+                    <View style={{
+                        backgroundColor: colors.success,
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: spacing.xs,
+                        borderRadius: 10,
+                        marginLeft: spacing.xs,
+                    }}>
+                        <Text style={{ color: colors.textPrimary, fontWeight: 'bold', fontSize: 11 }}>
                             +{affirmativeVotes}
                         </Text>
                     </View>
                 )}
                 {nonAffirmativeVotes > 0 && (
-                    <View style={{ backgroundColor: '#dc2626', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, marginLeft: 6 }}>
-                        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 11 }}>
+                    <View style={{
+                        backgroundColor: colors.danger,
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: spacing.xs,
+                        borderRadius: 10,
+                        marginLeft: spacing.xs,
+                    }}>
+                        <Text style={{ color: colors.textPrimary, fontWeight: 'bold', fontSize: 11 }}>
                             -{nonAffirmativeVotes}
                         </Text>
                     </View>
@@ -49,10 +70,13 @@ export default function VetoStatusMini(props: Props) {
         return null
     }
 
+    // An approved veto is a fact about the pick, not an alarm — the glyph carries the
+    // meaning, so it does not need a filled red block behind it as well.
     return (
-        <View style={{ backgroundColor: '#FF8D8D', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 11 }}>
-                {vetoingGamblerName} veto 🔒
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <MaterialCommunityIcons name="cancel" size={15} color={colors.danger} />
+            <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '600' }}>
+                {vetoingGamblerName}
             </Text>
         </View>
     )

@@ -5,6 +5,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 
 import DateTimePicker from "@react-native-community/datetimepicker"
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup"
 import { ParlayEditArgs } from "./common"
+import { useToastContext } from "@/contexts/toastContext"
+import { colors, shadows, typography, spacing } from "@/theme/colors"
 
 type Props = {
     parlay?: ParlayResponseData
@@ -14,8 +16,11 @@ type Props = {
 export default function ParlayEditCard({ parlay, handleEdit }: Props) {
     const { sortedGamblers, gamblerId } = useGamblingSeasonContext()
 
+    // Today, not null, for a new parlay. The picker renders `competitionDate ?? new Date()`,
+    // so a null start showed today while holding nothing — leaving Create disabled until the
+    // user tapped a date that was already on screen.
     const [competitionDate, setCompetitionDate] = useState<Date | null>(
-        parlay?.competition_date ? new Date(parlay.competition_date) : null
+        parlay?.competition_date ? new Date(parlay.competition_date) : new Date()
     )
     const [ownerId, setOwnerId] = useState<number | null>(
         parlay?.owner_id ?? gamblerId
@@ -27,7 +32,7 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
         parlay?.wager_pp != null ? String(parlay.wager_pp) : "5"
     )
 
-    const [error, setError] = useState<string | null>(null)
+    const { showToast } = useToastContext()
 
     const isEditing = !!parlay
 
@@ -61,8 +66,7 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
     const handleSubmit = () => {
         const editArgs = getEditArgs()
         if (!editArgs) {
-            setError("Must fill in all fields")
-            setTimeout(() => setError(null), 5000)
+            showToast("Must fill in all fields")
             return
         }
         handleEdit(editArgs)
@@ -83,6 +87,7 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
                                     setCompetitionDate(selectedDate)
                                 }
                             }}
+                            themeVariant="dark"
                         />
                     </View>
                 </View>
@@ -96,6 +101,7 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
                             onChangeText={setWagerPp}
                             keyboardType="numeric"
                             placeholder="0.00"
+                            placeholderTextColor={colors.textMuted}
                         />
                     </View>
                 </View>
@@ -129,6 +135,7 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
                 style={[styles.actionButton, isButtonDisabled && styles.actionButtonDisabled]}
                 disabled={isButtonDisabled}
                 onPress={handleSubmit}
+                activeOpacity={0.7}
             >
                 <Text style={[styles.actionButtonText, isButtonDisabled && styles.actionButtonTextDisabled]}>
                     {isEditing ? "Update" : "Create"}
@@ -140,24 +147,22 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: "#e0e0e0",
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        padding: spacing.lg,
+        marginBottom: spacing.md,
     },
     label: {
-        fontSize: 14,
+        ...typography.body,
         fontWeight: "600",
-        color: "#333",
-        marginBottom: 8,
-        marginTop: 12,
+        color: colors.textSecondary,
+        marginBottom: spacing.sm,
+        marginTop: spacing.md,
     },
     dateWagerRow: {
         flexDirection: "row",
         alignItems: "flex-end",
-        gap: 16,
+        gap: spacing.lg,
     },
     dateColumn: {
         flex: 1,
@@ -173,83 +178,84 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     dollarSign: {
-        fontSize: 16,
-        color: "#333",
-        marginRight: 4,
+        ...typography.heading,
+        color: colors.textSecondary,
+        marginRight: spacing.xs,
     },
     wagerInput: {
         flex: 1,
         borderWidth: 1,
-        borderColor: "#e0e0e0",
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        fontSize: 16,
-        color: "#333",
+        borderColor: colors.inputBorder,
+        borderRadius: 10,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        ...typography.heading,
+        color: colors.textPrimary,
+        backgroundColor: colors.inputBackground,
     },
     ownerContainer: {
         flexDirection: "row",
-        marginBottom: 16,
+        marginBottom: spacing.lg,
     },
     ownerButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
         borderRadius: 16,
-        backgroundColor: "#e0e0e0",
-        marginRight: 8,
+        backgroundColor: colors.card,
+        marginRight: spacing.sm,
     },
     ownerButtonActive: {
-        backgroundColor: "#007AFF",
+        backgroundColor: colors.accent,
     },
     ownerText: {
-        fontSize: 12,
-        color: "#666",
+        ...typography.caption,
+        color: colors.textSecondary,
         fontWeight: "500",
     },
     ownerTextActive: {
-        color: "#fff",
+        color: colors.textPrimary,
     },
     slateContainer: {
-        marginBottom: 16,
+        marginBottom: spacing.lg,
     },
     slateRow: {
         flexDirection: "row",
-        marginBottom: 8,
+        marginBottom: spacing.sm,
     },
     slateButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
         borderRadius: 16,
-        backgroundColor: "#e0e0e0",
-        marginRight: 8,
+        backgroundColor: colors.card,
+        marginRight: spacing.sm,
     },
     slateButtonActive: {
-        backgroundColor: "#007AFF",
+        backgroundColor: colors.accent,
     },
     slateText: {
-        fontSize: 12,
-        color: "#666",
+        ...typography.caption,
+        color: colors.textSecondary,
         fontWeight: "500",
     },
     slateTextActive: {
-        color: "#fff",
+        color: colors.textPrimary,
     },
     actionButton: {
-        backgroundColor: "#007AFF",
-        paddingVertical: 14,
-        borderRadius: 8,
+        backgroundColor: colors.accent,
+        paddingVertical: spacing.md,
+        borderRadius: 12,
         alignItems: "center",
-        marginTop: 16,
+        marginTop: spacing.lg,
+        ...shadows.card,
     },
     actionButtonDisabled: {
-        backgroundColor: "#e0e0e0",
+        backgroundColor: colors.buttonDisabled,
     },
     actionButtonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "600",
+        color: colors.textPrimary,
+        ...typography.heading,
     },
     actionButtonTextDisabled: {
-        color: "#999",
+        color: colors.textMuted,
     },
 })

@@ -1,10 +1,9 @@
 import { GamblingSeasonService, GetSeasonParlaysResponseData, ParlayState, ParlayResponseData, ParlaysService, GetSeasonParlaysSortParam, UpdateParlayRequestData } from "@/api"
 import { setApiErrorMsg } from "@/util/error"
 import { useEffect, useRef, useState } from "react"
-import useApiActionState from "./useApiActionState"
-import { ParlayEditArgs } from "@/components/parlays/common"
+import { useToastContext } from "@/contexts/toastContext"
 
-export type ParlayLoadingStates = Record<number, {loading: boolean, error: string | null}>
+export type ParlayLoadingStates = Record<number, boolean>
 
 export function useListParlays(seasonId: number, state: ParlayState, opts?: {
     limit?: number,
@@ -13,9 +12,10 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
 
     const limit = opts?.limit ?? 10
 
+    const { showToast } = useToastContext()
+
     const [parlays, setParlays] = useState<ParlayResponseData[]>([])
     const [parlaysLoading, setParlaysLoading] = useState(false)
-    const [parlaysError, setParlaysError] = useState<string | null>(null)
     const [parlayLoadingStates, setParlayLoadingStates] = useState<ParlayLoadingStates>({})
     const [canLoadMore, setCanLoadMore] = useState(true)
 
@@ -27,7 +27,6 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
     function loadParlays(fromOffset: number, append: boolean) {
         const currentLoadId = ++loadIdRef.current
         setParlaysLoading(true)
-        setParlaysError(null)
         GamblingSeasonService.getSeasonParlays(
             seasonId,
             limit,
@@ -45,7 +44,14 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
             }
         }).catch(err => {
             if (currentLoadId !== loadIdRef.current) return
-            setApiErrorMsg(err, setParlaysError, "There was an error while loading parlays")
+            setApiErrorMsg(
+                err,
+                message => showToast(message, {
+                    sticky: true,
+                    action: { label: "Retry", onPress: () => loadParlays(fromOffset, append) }
+                }),
+                "There was an error while loading parlays"
+            )
         }).finally(() => {
             if (currentLoadId === loadIdRef.current) {
                 setParlaysLoading(false)
@@ -61,12 +67,20 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
         loadParlays(0, false)
     }, [refreshTrigger])
 
-    function updateParlayLoadingState(parlayId: number, loading: boolean, error: string | null) {
-        setParlayLoadingStates(prev => ({ ...prev, [parlayId]: {error, loading} }))
+    function updateParlayLoadingState(parlayId: number, loading: boolean) {
+        setParlayLoadingStates(prev => ({ ...prev, [parlayId]: loading }))
+    }
+
+    /** Clears the row's spinner and surfaces the failure as a toast. */
+    function handleParlayError(parlayIds: number[], defaultMessage: string) {
+        return (e: unknown) => {
+            parlayIds.forEach(id => updateParlayLoadingState(id, false))
+            setApiErrorMsg(e, message => showToast(message), defaultMessage)
+        }
     }
 
     function refreshParlay(parlayId: number) {
-        updateParlayLoadingState(parlayId, true, null)
+        updateParlayLoadingState(parlayId, true)
         ParlaysService.getParlay(parlayId)
         .then(res => {
             if (res.parlay.state !== state) {
@@ -77,135 +91,84 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
                     return p
                 }))
             }
-            updateParlayLoadingState(parlayId, false, null)
+            updateParlayLoadingState(parlayId, false)
         })
-        .catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(parlayId, false, msg),
-                "There was an error loading the parlay"
-            )
-        })
+        .catch(handleParlayError([parlayId], "There was an error loading the parlay"))
     }
 
     function claimParlay(parlayId: number, gamblerId: number) {
-        updateParlayLoadingState(parlayId, true, null)
+        updateParlayLoadingState(parlayId, true)
         ParlaysService.claimParlay(parlayId, {
             gambler_id: gamblerId
         })
         .then(res => {
-            updateParlayLoadingState(parlayId, false, null)
+            updateParlayLoadingState(parlayId, false)
             refreshParlay(parlayId)
         })
-        .catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(parlayId, false, msg),
-                "There was an error claiming the parlay"
-            )
-        })
+        .catch(handleParlayError([parlayId], "There was an error claiming the parlay"))
     }
 
     function updateParlay(request: UpdateParlayRequestData) {
-        updateParlayLoadingState(request.parlay_id, true, null)
+        updateParlayLoadingState(request.parlay_id, true)
         ParlaysService.updateParlay(request)
         .then(res => {
-            updateParlayLoadingState(request.parlay_id, false, null)
+            updateParlayLoadingState(request.parlay_id, false)
             refreshParlay(request.parlay_id)
-        }).catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(request.parlay_id, false, msg),
-                "There was an error updating the parlay"
-            )
-        })
+        }).catch(handleParlayError([request.parlay_id], "There was an error updating the parlay"))
     }
 
     function lockParlay(parlayId: number, afterLock: (parlayId: number) => void) {
-        updateParlayLoadingState(parlayId, true, null)
+        updateParlayLoadingState(parlayId, true)
         ParlaysService.lockParlay(parlayId, {pick_overrides: {}})
         .then(res => {
-            updateParlayLoadingState(parlayId, false, null)
+            updateParlayLoadingState(parlayId, false)
             refreshParlays()
             afterLock(parlayId)
         })
-        .catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(parlayId, false, msg),
-                "There was an error locking the parlay"
-            )
-        })
+        .catch(handleParlayError([parlayId], "There was an error locking the parlay"))
     }
 
     function unlockParlay(parlayId: number, afterUnlock: (parlayId: number) => void) {
-        updateParlayLoadingState(parlayId, true, null)
+        updateParlayLoadingState(parlayId, true)
         ParlaysService.unlockParlay(parlayId, {})
         .then(res => {
-            updateParlayLoadingState(parlayId, false, null)
+            updateParlayLoadingState(parlayId, false)
             refreshParlays()
             afterUnlock(parlayId)
         })
-        .catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(parlayId, false, msg),
-                "There was an error unlocking the parlay"
-            )
-        })
+        .catch(handleParlayError([parlayId], "There was an error unlocking the parlay"))
     }
 
     function reopenParlay(parlayId: number, afterReopen: (parlayId: number) => void) {
-        updateParlayLoadingState(parlayId, true, null)
+        updateParlayLoadingState(parlayId, true)
         ParlaysService.reopenParlay(parlayId, {})
         .then(res => {
-            updateParlayLoadingState(parlayId, false, null)
+            updateParlayLoadingState(parlayId, false)
             refreshParlays()
             afterReopen(parlayId)
         })
-        .catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(parlayId, false, msg),
-                "There was an error reopening the parlay"
-            )
-        })
+        .catch(handleParlayError([parlayId], "There was an error reopening the parlay"))
     }
 
     function deleteParlay(parlayId: number) {
-        updateParlayLoadingState(parlayId, true, null)
-        ParlaysService.getParlay(parlayId)
+        updateParlayLoadingState(parlayId, true)
+        ParlaysService.deleteParlay(parlayId)
         .then(res => {
             setParlays(prev => prev.filter(p => p.id !== parlayId))
-            updateParlayLoadingState(parlayId, false, null)
+            updateParlayLoadingState(parlayId, false)
         })
-        .catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => updateParlayLoadingState(parlayId, false, msg),
-                "There was an error deleting the parlay"
-            )
-        })
+        .catch(handleParlayError([parlayId], "There was an error deleting the parlay"))
     }
 
     function swapParlays(parlayId_1: number, parlayId_2: number) {
-        updateParlayLoadingState(parlayId_1, true, null)
-        updateParlayLoadingState(parlayId_2, true, null)
+        updateParlayLoadingState(parlayId_1, true)
+        updateParlayLoadingState(parlayId_2, true)
         ParlaysService.swapParlayOrder({parlay_id_1: parlayId_1, parlay_id_2: parlayId_2})
         .then(res => {
-            updateParlayLoadingState(parlayId_1, false, null)
-            updateParlayLoadingState(parlayId_2, false, null)
+            updateParlayLoadingState(parlayId_1, false)
+            updateParlayLoadingState(parlayId_2, false)
             refreshParlays()
-        }).catch(e => {
-            setApiErrorMsg(
-                e,
-                msg => {
-                    updateParlayLoadingState(parlayId_1, false, msg)
-                    updateParlayLoadingState(parlayId_2, false, msg)
-                },
-                "There was an error swapping parlay order"
-            )
-        })
+        }).catch(handleParlayError([parlayId_1, parlayId_2], "There was an error swapping parlay order"))
     }
 
     function refreshParlays() {
@@ -221,7 +184,6 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
         parlayLoadingStates,
         canLoadMore,
         parlaysLoading,
-        parlaysError,
         refreshParlays,
         refreshParlay,
         deleteParlay,

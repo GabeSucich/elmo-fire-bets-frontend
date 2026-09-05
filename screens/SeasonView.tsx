@@ -11,8 +11,9 @@ import { GamblingSeasonProvider } from "@/contexts/gamblingSeasonContext";
 import AnalyticsView from "./AnalyticsView";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
 import useApiActionState from "@/composables/useApiActionState";
-import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
-import ErrorView from "@/components/reusable/ErrorView";
+import { useLoadingState } from "@/composables/useLoadingState";
+import { colors } from "@/theme/colors";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
 type NavigationProp = NativeStackNavigationProp<MainStackParamList, "Season">
 type SeasonViewRouteProps = RouteProp<MainStackParamList, "Season">
@@ -28,8 +29,8 @@ export default function SeasonView() {
     const seasonId = route.params.season.seasonId
 
     const {
-        error, loading, setError, setLoading
-    } = useErrorLoadingStates()
+        loading, setLoading
+    } = useLoadingState()
 
     const [gamblingSeason, setGamblingSeason] = useState<GetGamblingSeasonResponseData | null>(null)
 
@@ -39,8 +40,8 @@ export default function SeasonView() {
         () => GamblingSeasonService.getGamblingSeason(seasonId),
         setGamblingSeason,
         setLoading,
-        setError,
-        "There was an error loading your gambling seasons."
+        "There was an error loading your gambling seasons.",
+        { retryable: true }
     )
 
     useEffect(() => {
@@ -48,24 +49,43 @@ export default function SeasonView() {
     }, [])
 
     if (loading) {
-        return <ActivityLoader key={"Different"} verticalAlign="center" text="Loading season data..."/>
-    }
-
-    if (error) {
-        return <ErrorView errorMsg={error}/>
+        return (
+            <View style={{ flex: 1, backgroundColor: colors.background }}>
+                <ActivityLoader key={"Different"} verticalAlign="center" text="Loading season data..."/>
+            </View>
+        )
     }
 
     if (!gamblingSeason) {
-        return null
+        return <View style={{ flex: 1, backgroundColor: colors.background }} />
     }
 
     return (
         <GamblingSeasonProvider gamblingSeason={gamblingSeason}>
-            <Tab.Navigator>
-                <Tab.Screen name="Parlays" options={{headerShown: false}}>
+            <Tab.Navigator
+                screenOptions={{
+                    tabBarStyle: {
+                        backgroundColor: colors.backgroundSecondary,
+                        borderTopColor: colors.cardBorder,
+                    },
+                    tabBarActiveTintColor: colors.accent,
+                    tabBarInactiveTintColor: colors.textSecondary,
+                }}
+            >
+                <Tab.Screen name="Parlays" options={{
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="poker-chip" size={size} color={color} />
+                    ),
+                }}>
                     {() => <ParlaysView seasonId={seasonId}/>}
                 </Tab.Screen>
-                <Tab.Screen name="Analytics" options={{headerShown: false}}>
+                <Tab.Screen name="Analytics" options={{
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="chart-bar" size={size} color={color} />
+                    ),
+                }}>
                     {() => <AnalyticsView seasonId={seasonId}/>}
                 </Tab.Screen>
             </Tab.Navigator>

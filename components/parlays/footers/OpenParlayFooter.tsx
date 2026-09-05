@@ -8,6 +8,7 @@ import UnlockParlayModal from "../modals/UnlockParlayModal";
 
 import ActionButton from "../../reusable/ActionButton";
 import { useParlaysContext } from "@/contexts/parlaysContext";
+import { colors, spacing } from "@/theme/colors";
 
 type Props = {
     parlay: ParlayResponseData
@@ -54,11 +55,11 @@ export default function OpenParlayFooter({ parlay }: Props) {
 
     if (isMyOwnedParlay) {
         return (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                <ActionButton text="Unlock" onPress={() => setUnlockVisible(true)} color="#eab308" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, flexWrap: 'wrap', gap: spacing.sm }}>
+                <ActionButton text="Unlock" onPress={() => setUnlockVisible(true)} color={colors.warning} />
 
-                <View style={{ flexDirection: 'row', gap: 8, marginLeft: 'auto' }}>
-                    <ActionButton text={addCorrectionsText} onPress={() => setPickCorrectionVisible(true)} color={uncorrectedPickCnt > 0 ? 'red' : '#3b82f6'} />
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginLeft: 'auto' }}>
+                    <ActionButton text={addCorrectionsText} onPress={() => setPickCorrectionVisible(true)} color={uncorrectedPickCnt > 0 ? colors.danger : colors.accent} />
                     <ActionButton text="Finalize Result" onPress={() => setFinalizationVisible(true)} disabled={picksWithoutResultsCnt > 0 || uncorrectedPickCnt > 0} />
                 </View>
 
@@ -91,7 +92,7 @@ export default function OpenParlayFooter({ parlay }: Props) {
 
     const ownerName = gamblers[parlay.owner_id].firstName
     return (
-        <View style={{ alignItems: 'flex-start', marginTop: 8 }}>
+        <View style={{ alignItems: 'flex-start', marginTop: spacing.md }}>
             <ActionButton text={`Claim from ${ownerName}`} onPress={() => claimParlay(parlay.id, gamblerId)} />
         </View>
     )

@@ -4,6 +4,7 @@ import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import React, { useState } from "react";
 import { Text, View } from "react-native";
 import ReopenParlayModal from "../modals/ReopenParlayModal";
+import { colors, typography, spacing } from "@/theme/colors";
 
 type Props = {
     parlay: ParlayResponseData
@@ -22,10 +23,12 @@ export default function ClosedParlayFooter({parlay}: Props) {
 
     if (parlay.state !== ParlayState.CLOSED) return null
 
+    // Collapsing lives on the card header's date caret now, for every parlay state.
+
     if (isMyOwnedParlay) {
         return (
-            <View style={{ alignItems: 'flex-start', marginTop: 8 }}>
-                <ActionButton text="Reopen Parlay" onPress={() => setReopenVisible(true)} color="#eab308" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.md }}>
+                <ActionButton text="Reopen Parlay" onPress={() => setReopenVisible(true)} color={colors.warning} />
                 <ReopenParlayModal
                     visible={reopenVisible}
                     parlayId={parlay.id}
@@ -36,9 +39,14 @@ export default function ClosedParlayFooter({parlay}: Props) {
     }
 
     return (
-        <View style={{ alignItems: 'flex-start', marginTop: 8 }}>
-            <View style={{ backgroundColor: '#9ca3af', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12 }}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '500' }}>Owned by {ownerName}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.md }}>
+            <View style={{
+                backgroundColor: colors.buttonSecondary,
+                paddingVertical: spacing.xs,
+                paddingHorizontal: spacing.md,
+                borderRadius: 8,
+            }}>
+                <Text style={{ color: colors.textPrimary, ...typography.caption, fontWeight: '500' }}>Owned by {ownerName}</Text>
             </View>
         </View>
     )

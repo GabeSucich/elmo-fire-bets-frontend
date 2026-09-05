@@ -4,15 +4,15 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  ScrollView,
 } from "react-native";
-import { GamblingSeasonService, GamblingSeasonState } from "@/api";
+import { GamblingSeasonState } from "@/api";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { GamblerSeason, useListSeasons } from "@/composables/useListSeasons";
 import { MainStackParamList } from "@/Main";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
-import ErrorView from "@/components/reusable/ErrorView";
+import { colors, shadows, typography, spacing } from "@/theme/colors";
 
 type NavigationProp = NativeStackNavigationProp<MainStackParamList, "SeasonSelector">
 type SeasonSelectionRouteProp = RouteProp<MainStackParamList, "SeasonSelector">
@@ -20,8 +20,8 @@ type SeasonSelectionRouteProp = RouteProp<MainStackParamList, "SeasonSelector">
 export function SeasonSelectionScreen() {
   const navigation = useNavigation<NavigationProp>()
   const route = useRoute<SeasonSelectionRouteProp>()
-  
-  const { gamblerSeasons, loading, error } = useListSeasons()
+
+  const { gamblerSeasons, loading } = useListSeasons()
 
   function setGamblerSeason(season: GamblerSeason) {
     navigation.navigate("Season", { season })
@@ -29,25 +29,27 @@ export function SeasonSelectionScreen() {
 
   if (loading) {
     return (
-      <ActivityLoader key={"this-first"} text="Loading seasons..."/>
+      <View style={styles.container}>
+        <ActivityLoader key={"this-first"} text="Loading seasons..." color={colors.textPrimary}/>
+      </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ErrorView errorMsg={error}/>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {gamblerSeasons.map((season) => {
         return (
           <TouchableOpacity
             key={season.seasonId}
             style={styles.card}
             onPress={() => setGamblerSeason(season)}
+            activeOpacity={0.8}
           >
             <View style={styles.cardContent}>
-              <Text style={[styles.name]}>
+              <Text style={styles.name}>
                 {season.name}
               </Text>
-              <Text style={[styles.year]}>
+              <Text style={styles.year}>
                 {season.year}
               </Text>
             </View>
@@ -59,19 +61,33 @@ export function SeasonSelectionScreen() {
                   : styles.stateBadgeInProgress,
               ]}
             >
-              <Text style={styles.stateText}>{season.state}</Text>
+              <Text style={[
+                styles.stateText,
+                season.state === GamblingSeasonState.COMPLETE
+                  ? styles.stateTextComplete
+                  : styles.stateTextInProgress,
+              ]}>{season.state}</Text>
             </View>
           </TouchableOpacity>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    gap: 12,
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  header: {
+    ...typography.title,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   centered: {
     flex: 1,
@@ -79,54 +95,58 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   error: {
-    color: "red",
+    color: colors.danger,
     fontSize: 16,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "#e0e0e0",
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     position: "relative",
+    ...shadows.card,
   },
   cardSelected: {
-    borderColor: "#007AFF",
-    backgroundColor: "#f0f8ff",
+    borderColor: colors.accent,
   },
   cardContent: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   name: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    ...typography.heading,
+    color: colors.textPrimary,
   },
   year: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   textSelected: {
-    color: "#007AFF",
+    color: colors.accent,
   },
   stateBadge: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    bottom: spacing.sm,
+    right: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 6,
   },
   stateBadgeInProgress: {
-    backgroundColor: "#fff3cd",
+    backgroundColor: colors.warningLight,
   },
   stateBadgeComplete: {
-    backgroundColor: "#d4edda",
+    backgroundColor: colors.successLight,
   },
   stateText: {
-    fontSize: 10,
-    fontWeight: "500",
-    color: "#333",
+    ...typography.small,
+    fontWeight: "600",
+  },
+  stateTextInProgress: {
+    color: colors.warning,
+  },
+  stateTextComplete: {
+    color: colors.successDark,
   },
 });

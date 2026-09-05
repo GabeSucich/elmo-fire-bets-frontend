@@ -1,7 +1,9 @@
 import React from "react"
-import { Modal, Pressable, ScrollView, Text, View } from "react-native"
+import { Pressable, ScrollView, Text, View } from "react-native"
+import AppModal from "@/components/reusable/AppModal"
 import ParlayFinalization from "../ParlayFinalization"
 import { ParlayResponseData } from "@/api"
+import { colors, shadows, spacing, typography } from "@/theme/colors"
 
 type Props = {
     visible: boolean
@@ -11,22 +13,39 @@ type Props = {
 
 export default function ParlayFinalizationModal({ visible, dismissModal, parlay }: Props) {
     return (
-        <Modal
+        <AppModal
             visible={visible}
             animationType="fade"
             transparent={true}
             onRequestClose={dismissModal}
         >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <View style={{ width: '90%', maxHeight: '85%', backgroundColor: 'white', borderRadius: 10, padding: 20 }}>
-                    <Pressable onPress={dismissModal}>
-                        <Text style={{ fontSize: 18 }}>✕</Text>
-                    </Pressable>
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.overlay,
+            }}>
+                <View style={{
+                    width: '90%',
+                    maxHeight: '85%',
+                    backgroundColor: colors.backgroundSecondary,
+                    borderRadius: 20,
+                    padding: spacing.xl,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    ...shadows.modal,
+                }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Finalize Parlay</Text>
+                        <Pressable onPress={dismissModal} style={{ padding: spacing.xs }}>
+                            <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
+                        </Pressable>
+                    </View>
                     <ScrollView style={{ width: '100%' }}>
                         <ParlayFinalization parlay={parlay} onDone={dismissModal} />
                     </ScrollView>
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     )
 }

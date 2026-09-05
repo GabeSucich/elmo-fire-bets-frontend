@@ -31,7 +31,7 @@ export const PickDisplayUtil = {
         if (sauceFactor === SauceFactor.BITCH) {
             sauceSuffix = ' 💩'
         } else if (sauceFactor === SauceFactor.SPICY) {
-            sauceSuffix = ' 🔥'
+            sauceSuffix = ' 🌶️'
         }
 
         const lineToUse = (corrected_line ?? line).toFixed(1)

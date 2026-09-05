@@ -1,7 +1,9 @@
 import React from "react"
-import { Modal, Text, View } from "react-native"
+import { Text, View } from "react-native"
+import AppModal from "@/components/reusable/AppModal"
 import ActionButton from "../../reusable/ActionButton"
 import { useParlaysContext } from "@/contexts/parlaysContext"
+import { colors, shadows, spacing, typography } from "@/theme/colors"
 
 type Props = {
     visible: boolean
@@ -27,26 +29,51 @@ export default function ReopenParlayModal({ visible, parlayId, onCancel }: Props
     }
 
     return (
-        <Modal
+        <AppModal
             visible={visible}
             animationType="fade"
             transparent={true}
             onRequestClose={onCancel}
         >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <View style={{ width: '85%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.overlay,
+            }}>
+                <View style={{
+                    width: '85%',
+                    backgroundColor: colors.backgroundSecondary,
+                    borderRadius: 20,
+                    padding: spacing.xl,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    ...shadows.modal,
+                }}>
+                    <Text style={{
+                        ...typography.heading,
+                        color: colors.textPrimary,
+                        marginBottom: spacing.md,
+                        textAlign: 'center',
+                    }}>
                         Reopen Parlay?
                     </Text>
-                    <Text style={{ fontSize: 14, color: '#333', lineHeight: 20, marginBottom: 20, textAlign: 'center' }}>
+                    <Text style={{
+                        ...typography.body,
+                        color: colors.textSecondary,
+                        lineHeight: 22,
+                        marginBottom: spacing.xl,
+                        textAlign: 'center',
+                    }}>
                         Do you want to reopen the parlay? This will require you to re-enter the parlay result in the "Open" tab.
                     </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
-                        <ActionButton text="Cancel" onPress={onCancel} color="#e0e0e0" />
-                        <ActionButton text="Reopen Parlay" onPress={handleReopen} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md }}>
+                        <ActionButton text="Cancel" onPress={onCancel} color={colors.buttonSecondary} />
+                        <ActionButton text="Reopen Parlay" onPress={handleReopen} color={colors.warning} />
                     </View>
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     )
 }

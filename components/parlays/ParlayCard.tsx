@@ -11,6 +11,9 @@ import { ParlayResultColors } from "@/util/pickResults";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import DeleteParlayModal from "./modals/DeleteParlayModal";
 import ParlayEditorModal from "./modals/ParlayEditorModal";
+import { colors, shadows, typography, spacing } from "@/theme/colors";
+import { slateTypeDisplay } from "./common";
+import Collapsible from "../reusable/Collapsible";
 
 interface ParlayCardProps {
   parlay: ParlayResponseData;
@@ -23,6 +26,8 @@ interface ParlayCardProps {
 export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disableResultEditing }: ParlayCardProps) {
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  // Closed parlays open collapsed to just their header; everything else starts open.
+  const [expanded, setExpanded] = useState(parlay.state !== ParlayState.CLOSED)
   const {
     gamblers,
     sortedGamblers,
@@ -42,13 +47,13 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
 
   const getResultColor = (result: ParlayResult) => {
     switch (result) {
-      
-    }
-    if (!result) return "#666";
-    if (result === ParlayResult.WIN) return "#34C759";
-    if (result === ParlayResult.LOSS) return "#FF3B30";
 
-    return "#FF9500";
+    }
+    if (!result) return colors.textMuted;
+    if (result === ParlayResult.WIN) return colors.success;
+    if (result === ParlayResult.LOSS) return colors.danger;
+
+    return colors.warning;
   };
 
   function formattedDate() {
@@ -62,50 +67,67 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.header}>{ formattedDate() }</Text>
-        <View style={styles.slateButton}>
-          <Text style={styles.slateText}>{parlay.slate_type}</Text>
+      <View style={[styles.headerRow, !expanded && styles.headerRowCollapsed]}>
+        <Text style={styles.header} numberOfLines={1}>{ slateTypeDisplay(parlay.slate_type) }</Text>
+        <View style={styles.headerActions}>
+          {parlay.result && (
+            <View style={{ backgroundColor: ParlayResultColors[parlay.result], paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 }}>
+              <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600' }}>{parlay.result}</Text>
+            </View>
+          )}
+          {editable && (
+            <Pressable onPress={() => setEditModalVisible(true)}>
+              <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '600' }}>Edit</Text>
+            </Pressable>
+          )}
+          {isBuilding && (
+            <Pressable onPress={() => handleSwapSelect(parlay.id)}>
+              <MaterialCommunityIcons name="swap-vertical-circle" size={22} color={isStagedForSwap(parlay.id) ? colors.success : colors.textSecondary} />
+            </Pressable>
+          )}
+          {isBuilding && (
+            <Pressable onPress={() => setDeleteModalVisible(true)}>
+              <MaterialCommunityIcons name="delete" size={20} color={colors.danger} />
+            </Pressable>
+          )}
+          {/* The date doubles as the collapse control, so the caret sits with it rather
+              than adding a separate affordance to an already busy row. */}
+          <Pressable
+            onPress={() => setExpanded(prev => !prev)}
+            style={styles.dateToggle}
+            hitSlop={8}
+            accessibilityLabel={expanded ? "Collapse parlay" : "Expand parlay"}
+          >
+            <Text style={styles.headerDate}>({ formattedDate() })</Text>
+            <MaterialCommunityIcons
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={colors.textSecondary}
+            />
+          </Pressable>
         </View>
-        {parlay.result && (
-          <View style={{ backgroundColor: ParlayResultColors[parlay.result], paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, marginLeft: 'auto' }}>
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '500' }}>{parlay.result}</Text>
-          </View>
-        )}
-        {
-          editable &&
-          <Pressable onPress={() => setEditModalVisible(true)} style={{ ...(!parlay.result && { marginLeft: 'auto' }) }}>
-            <Text style={{ color: '#007AFF', fontSize: 12, fontWeight: '500' }}>Edit</Text>
-          </Pressable>
-        }
-        {isBuilding && (
-          <Pressable onPress={() => handleSwapSelect(parlay.id)}>
-            <MaterialCommunityIcons name="swap-vertical-circle" size={22} color={isStagedForSwap(parlay.id) ? '#16a34a' : 'black'} />
-          </Pressable>
-        )}
-        {isBuilding && (
-          <Pressable onPress={() => setDeleteModalVisible(true)}>
-            <MaterialCommunityIcons name="delete" size={20} color="#dc2626" />
-          </Pressable>
-        )}
       </View>
 
-      {
-        sortedGamblers.map((gambler) => (
-          <GamblerParlaySlot
-            pick={findPick(gambler.id)}
-            editable={editable}
-            gambler={gambler}
-            parlay={parlay}
-            key={String(gambler.id)}
-            pickTileSize={pickTileSize}
-            allowResultEditing={!disableResultEditing}
-          />
-        ))
-      }
-      
-      <View style={{ height: 1, backgroundColor: '#e0e0e0', marginTop: 8 }} />
-      {!hideFooter && <ParlayFooter parlay={parlay}/>}
+      <Collapsible expanded={expanded}>
+          {
+            sortedGamblers.map((gambler, index) => (
+              <View key={String(gambler.id)}>
+                {index > 0 && <View style={styles.gamblerDivider} />}
+                <GamblerParlaySlot
+                  pick={findPick(gambler.id)}
+                  editable={editable}
+                  gambler={gambler}
+                  parlay={parlay}
+                  pickTileSize={pickTileSize}
+                  allowResultEditing={!disableResultEditing}
+                />
+              </View>
+            ))
+          }
+
+          <View style={styles.footerDivider} />
+          {!hideFooter && <ParlayFooter parlay={parlay} />}
+      </Collapsible>
 
       <ParlayEditorModal
         visible={editModalVisible}
@@ -126,51 +148,78 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.cardBorder,
+    ...shadows.card,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  // Collapsed, the header is the whole card — a rule under it would divide it from nothing.
+  headerRowCollapsed: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginLeft: "auto",
+  },
+  dateToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   header: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...typography.heading,
+    color: colors.textPrimary,
+    flexShrink: 1,
   },
-  slateButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+  headerDate: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
-  slateText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
+  gamblerDivider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginVertical: spacing.sm,
+    opacity: 0.5,
+  },
+  footerDivider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginTop: spacing.md,
   },
   pick: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 6,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   direction: {
-    fontSize: 14,
-    color: "#333",
+    ...typography.body,
+    color: colors.textPrimary,
   },
   sauce: {
-    fontSize: 12,
-    color: "#FF9500",
-    fontWeight: "500",
+    ...typography.caption,
+    color: colors.warning,
+    fontWeight: "600",
   },
   result: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: "600",
     marginLeft: "auto",
   },

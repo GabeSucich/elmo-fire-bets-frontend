@@ -1,12 +1,12 @@
 import { PickResponseData, VetoesService } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
-import { setApiErrorMsg } from "@/util/error";
-import React, { useState } from "react";
+import React from "react";
 import { Pressable, Text, View } from "react-native";
 import PickDisplay from "../picks/PickDisplay";
-import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import { useLoadingState } from "@/composables/useLoadingState";
 import useApiActionState from "@/composables/useApiActionState";
 import OverlayLoader from "../reusable/OverlayLoader";
+import { colors, shadows, typography, spacing } from "@/theme/colors";
 
 type Props = {
     pick: PickResponseData
@@ -20,8 +20,8 @@ export default function CreateVetoCard(props: Props) {
     } = useGamblingSeasonContext()
 
     const {
-        error, setError, loading, setLoading
-    } = useErrorLoadingStates()
+        loading, setLoading
+    } = useLoadingState()
 
     const vetoMessage = () => {
         return `Are you sure you want to veto ${gamblers[props.pick.gambler_id].firstName}'s pick?`
@@ -36,15 +36,19 @@ export default function CreateVetoCard(props: Props) {
         }),
         res => props.onVetoCreated(res.veto.id),
         setLoading,
-        setError,
         "Error saving your veto"
     )
 
 
     return (
-        <View style={{ alignItems: 'center', padding: 0 }}>
+        <View style={{ alignItems: 'center', padding: spacing.sm }}>
             {loading && <OverlayLoader />}
-            <Text style={{ fontSize: 16, textAlign: 'center', marginBottom: 16 }}>
+            <Text style={{
+                ...typography.heading,
+                color: colors.textPrimary,
+                textAlign: 'center',
+                marginBottom: spacing.lg,
+            }}>
                 {vetoMessage()}
             </Text>
             <PickDisplay pick={props.pick} showVeto={false}/>
@@ -52,22 +56,22 @@ export default function CreateVetoCard(props: Props) {
                 onPress={createVeto}
                 disabled={loading}
                 style={{
-                    backgroundColor: loading ? '#ccc' : '#dc2626',
-                    paddingVertical: 12,
-                    paddingHorizontal: 32,
-                    borderRadius: 8,
-                    marginTop: 20
+                    backgroundColor: loading ? colors.buttonDisabled : colors.danger,
+                    paddingVertical: spacing.md,
+                    paddingHorizontal: spacing.xxl,
+                    borderRadius: 12,
+                    marginTop: spacing.xl,
+                    ...shadows.card,
                 }}
             >
-                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                <Text style={{
+                    color: colors.textPrimary,
+                    fontWeight: 'bold',
+                    ...typography.heading,
+                }}>
                     Veto
                 </Text>
             </Pressable>
-            {error && (
-                <Text style={{ color: 'red', marginTop: 12, textAlign: 'center' }}>
-                    {error}
-                </Text>
-            )}
         </View>
     )
 }

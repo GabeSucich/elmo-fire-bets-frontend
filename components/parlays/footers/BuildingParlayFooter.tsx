@@ -7,6 +7,7 @@ import ClaimConfirmModal from "../modals/ClaimConfirmModal";
 import PendingVetoConfirmModal from "../modals/PendingVetoConfirmModal";
 import ActionButton from "../../reusable/ActionButton";
 import { useParlaysContext } from "@/contexts/parlaysContext";
+import { spacing } from "@/theme/colors";
 
 type Props = {
     parlay: ParlayResponseData
@@ -51,7 +52,7 @@ export default function BuildingParlayFooter({ parlay }: Props) {
 
     if (isMyOwnedParlay) {
         return (
-            <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
+            <View style={{ alignItems: 'flex-end', marginTop: spacing.md }}>
                 <ActionButton text="Lock Lay" onPress={() => setLockConfirmVisible(true)} />
 
                 <LockConfirmModal
@@ -78,7 +79,7 @@ export default function BuildingParlayFooter({ parlay }: Props) {
     const ownerName = gamblers[parlay.owner_id]?.firstName
 
     return (
-        <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
+        <View style={{ alignItems: 'flex-end', marginTop: spacing.md }}>
             <ActionButton text={`Claim from ${ownerName}`} onPress={() => setClaimConfirmVisible(true)} />
 
             <ClaimConfirmModal

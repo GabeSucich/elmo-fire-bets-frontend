@@ -1,8 +1,10 @@
 import React from "react"
-import { Modal, ScrollView, View } from "react-native"
+import { Pressable, ScrollView, Text, View } from "react-native"
+import AppModal from "@/components/reusable/AppModal"
 import ParlayPickCorrections from "../ParlayPickCorrections"
 import { ParlayResponseData } from "@/api"
 import { useParlaysContext } from "@/contexts/parlaysContext"
+import { colors, shadows, spacing, typography } from "@/theme/colors"
 
 type Props = {
     visible: boolean
@@ -12,24 +14,51 @@ type Props = {
 
 export default function PickCorrectionsModal({ visible, dismissModal, parlay }: Props) {
     const { refreshParlay } = useParlaysContext()
+
+    /**
+     * Corrections are written straight to the server, but the parlay behind this modal is
+     * still holding its pre-correction picks. Every way out has to refresh it — the X and
+     * the hardware back gesture used to dismiss directly, which is why a correction only
+     * showed up after reloading the parlay view.
+     */
     function onPickCorrectionDone() {
         refreshParlay(parlay.id)
         dismissModal()
     }
     return (
-        <Modal
+        <AppModal
             visible={visible}
             animationType="fade"
             transparent={true}
-            onRequestClose={dismissModal}
+            onRequestClose={onPickCorrectionDone}
         >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <View style={{ width: '85%', maxHeight: '85%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' }}>
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.overlay,
+            }}>
+                <View style={{
+                    width: '90%',
+                    maxHeight: '85%',
+                    backgroundColor: colors.backgroundSecondary,
+                    borderRadius: 20,
+                    padding: spacing.xl,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    ...shadows.modal,
+                }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Pick Corrections</Text>
+                        <Pressable onPress={onPickCorrectionDone} style={{ padding: spacing.xs }}>
+                            <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
+                        </Pressable>
+                    </View>
                     <ScrollView style={{ width: '100%' }}>
                         <ParlayPickCorrections parlay={parlay} onDone={onPickCorrectionDone}/>
                     </ScrollView>
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     )
 }

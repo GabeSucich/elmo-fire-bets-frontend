@@ -2,6 +2,7 @@ import React from "react";
 import SelectableTile from "./SelectableTile";
 import { ScrollView, StyleProp, View, ViewStyle } from "react-native";
 import { TileSize, TileStyleProps } from "./common";
+import { spacing } from "@/theme/colors";
 
 type Props<T> = {
     selectedItem: T | null
@@ -29,7 +30,7 @@ export default function SelectableTileGroup<T>(props: Props<T>) {
         return (
             <View style={[
                 props.containerProps,
-                { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }
+                { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: spacing.xs }
                 ]}>
                 {
                     props.items.map(item => {
@@ -43,7 +44,7 @@ export default function SelectableTileGroup<T>(props: Props<T>) {
                                 handleSelect={() => props.handleSelect(item)}
                                 handleUnselect={props.handleUnselect}
                                 style={{
-                                    marginTop: 5
+                                    marginTop: spacing.xs
                                 }}
                                 size={props.tileSize}
                             />
@@ -56,8 +57,8 @@ export default function SelectableTileGroup<T>(props: Props<T>) {
 
     return (
         <View style={props.containerProps}>
-            { props.raiseSelection && props.selectedItem && 
-                <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+            { props.raiseSelection && props.selectedItem &&
+                <View style={{ flexDirection: 'row', marginBottom: spacing.sm }}>
                     <SelectableTile
                         isSelected={true}
                         item={props.selectedItem}

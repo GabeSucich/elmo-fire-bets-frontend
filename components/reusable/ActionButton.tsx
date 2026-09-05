@@ -1,5 +1,6 @@
 import React from "react"
 import { Text, TouchableOpacity, View } from "react-native"
+import { colors, typography, spacing, shadows } from "@/theme/colors"
 
 type Props = {
     text: string
@@ -9,11 +10,21 @@ type Props = {
     disabledColor?: string
 }
 
-export default function ActionButton({ text, onPress, color = '#3b82f6', disabled, disabledColor = '#4b5563' }: Props) {
+export default function ActionButton({ text, onPress, color = colors.accent, disabled, disabledColor = colors.buttonDisabled }: Props) {
     return (
-        <TouchableOpacity onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.4 : 1 }}>
-            <View style={{ backgroundColor: disabled ? disabledColor : color, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 }}>
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{text}</Text>
+        <TouchableOpacity onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.5 : 1 }} activeOpacity={0.7}>
+            <View style={{
+                backgroundColor: disabled ? disabledColor : color,
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: 8,
+                ...shadows.card,
+            }}>
+                <Text style={{
+                    color: colors.textPrimary,
+                    fontWeight: '600',
+                    ...typography.caption,
+                }}>{text}</Text>
             </View>
         </TouchableOpacity>
     )

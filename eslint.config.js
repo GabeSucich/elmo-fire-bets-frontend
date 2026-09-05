@@ -7,4 +7,15 @@ module.exports = defineConfig([
   {
     ignores: ["dist/*"],
   },
+  {
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "react-native",
+          importNames: ["Modal"],
+          message: "Use @/components/reusable/AppModal instead, so toasts render above the modal rather than behind it.",
+        }],
+      }],
+    },
+  },
 ]);

@@ -1,13 +1,14 @@
 import { PickResponseData, PropBetDirection, PropBetType, SauceFactor } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
-import { makeSortedBetTypes } from "@/util/betTypes";
+import { makeSortedPlayerBetTypes, makeSortedTeamBetTypes } from "@/util/betTypes";
 import { executePlayerTeamSearch, playerTeamDisplay, PlayerTeamResult } from "@/util/executePlayerSearch";
-import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, Switch, Text, TextInput, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, Switch, Text, TextInput, View } from "react-native";
 import SelectableTile from "../reusable/tiles/SelectableTile";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import { PickCreateEditData } from "./common";
 import { getPickLine } from "@/util/picks";
+import { colors, typography, spacing, shadows } from "@/theme/colors";
 
 type Props = {
     pick: PickResponseData | null,
@@ -31,13 +32,15 @@ function getPlayerTeamResult(pick: PickResponseData): PlayerTeamResult {
 }
 
 export default function PickEditor(props: Props) {
-    const sortedBetTypes = makeSortedBetTypes()
-
     const initialTarget = props.pick ? getPlayerTeamResult(props.pick) : null
     const [selectedTarget, setSelectedTarget] = useState<PlayerTeamResult | null>(initialTarget)
     const [targetOpts, setTargetOpts] = useState<PlayerTeamResult[]>(initialTarget ? [initialTarget] : [])
     const [executeSearchTimeoutId, setExecuteSearchTimeoutId] = useState<number | null>(null)
     const [searchText, setSearchText] = useState("")
+    const [searching, setSearching] = useState(false)
+    // Guards against a slower earlier request landing after a newer one and overwriting it,
+    // which would also clear the spinner while the current search is still running.
+    const latestSearchTerm = useRef("")
 
     const [selectedDirection, setSelectedDirection] = useState<PropBetDirection | null>(props.pick?.direction ?? null)
     const [selectedBetType, setSelectedBetType] = useState<PropBetType | null>(props.pick?.prop_type ?? null)
@@ -84,14 +87,25 @@ export default function PickEditor(props: Props) {
     }
 
     function executeSearchOnTerm() {
-        executePlayerTeamSearch(searchText).then(result => {
-            setTargetOpts(result)
-        })
+        const term = searchText
+        latestSearchTerm.current = term
+        executePlayerTeamSearch(term)
+            .then(result => {
+                if (latestSearchTerm.current !== term) return
+                setTargetOpts(result)
+                setSearching(false)
+            })
+            .catch(() => {
+                if (latestSearchTerm.current === term) setSearching(false)
+            })
     }
 
     useEffect(() => {
         if (searchText) {
             clearExistingSearch()
+            // Spins from the keystroke rather than from the request, so the debounce does
+            // not read as the app having ignored you.
+            setSearching(true)
             const timeoutId = window.setTimeout(executeSearchOnTerm, 600)
             setExecuteSearchTimeoutId(timeoutId)
         }
@@ -101,6 +115,8 @@ export default function PickEditor(props: Props) {
         const trimmed = text.trim()
         if (!trimmed) {
             clearExistingSearch()
+            setSearching(false)
+            latestSearchTerm.current = ""
             setTargetOpts(selectedTarget ? [selectedTarget] : [])
             setSearchText("")
         } else {
@@ -124,7 +140,7 @@ export default function PickEditor(props: Props) {
     const inPlaceCorrectionLabel = () => {
         if (props.inPlaceCorrectionLabel) return props.inPlaceCorrectionLabel
         if (props.pick) return differentFromPick(props.pick) ? "Correct pick" : "Mark as correct"
-        return null 
+        return null
     }
 
     const submitLabel = () => {
@@ -136,21 +152,36 @@ export default function PickEditor(props: Props) {
     }
 
     return (
-        <View style={{padding: 10}}>
+        <View style={{padding: spacing.md}}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                 <TextInput
                     value={searchText}
                     onChangeText={handleSearchChange}
                     placeholder="Player or Team"
-                    style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, flex: 1, marginRight: 8 }}
+                    placeholderTextColor={colors.textMuted}
+                    style={{
+                        borderWidth: 1,
+                        borderColor: colors.inputBorder,
+                        borderRadius: 10,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.sm,
+                        flex: 1,
+                        marginRight: spacing.sm,
+                        color: colors.textPrimary,
+                        backgroundColor: colors.inputBackground,
+                    }}
                 />
+                {/* Fixed width so the input does not resize as the spinner comes and goes. */}
+                <View style={{ width: 20, marginRight: spacing.sm, alignItems: 'center' }}>
+                    {searching && <ActivityIndicator size="small" color={colors.accent} />}
+                </View>
                 {selectedTarget && (
                     <SelectableTile
                         isSelected={true}
                         item={selectedTarget}
                         handleSelect={() => {}}
                         display={playerTeamDisplay}
-                        size="md"
+                        size="sm"
                     />
                 )}
             </View>
@@ -161,98 +192,123 @@ export default function PickEditor(props: Props) {
                 itemDisplay={playerTeamDisplay}
                 itemKey={t => t.identifier}
                 containerProps={{
-                    marginTop: 10
+                    marginTop: spacing.sm
                 }}
                 tileSize="sm"
             />
 
-            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 16 }} />
+            {selectedTarget && (
+                <>
+                <View style={styles.divider} />
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <SelectableTile
-                    item={"Over"}
-                    key={"Over"}
-                    isSelected={selectedDirection === PropBetDirection.OVER}
-                    handleSelect={() => setSelectedDirection(PropBetDirection.OVER)}
-                    display={"Over"}
-                    size="md"
-                />
-                <SelectableTile
-                    item={"Under"}
-                    key={"Under"}
-                    isSelected={selectedDirection === PropBetDirection.UNDER}
-                    handleSelect={() => setSelectedDirection(PropBetDirection.UNDER)}
-                    display={"Under"}
-                    size="md"
-                />
-                <TextInput
-                    value={propLine}
-                    onChangeText={setPropLine}
-                    placeholder="Line"
-                    keyboardType="numeric"
-                    style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, width: 80 }}
-                />
-            </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                    <SelectableTile
+                        item={"Over"}
+                        key={"Over"}
+                        isSelected={selectedDirection === PropBetDirection.OVER}
+                        handleSelect={() => setSelectedDirection(PropBetDirection.OVER)}
+                        display={"Over"}
+                        size="sm"
+                        tileStyles={{ primaryColor: colors.success }}
+                    />
+                    <SelectableTile
+                        item={"Under"}
+                        key={"Under"}
+                        isSelected={selectedDirection === PropBetDirection.UNDER}
+                        handleSelect={() => setSelectedDirection(PropBetDirection.UNDER)}
+                        display={"Under"}
+                        size="sm"
+                        tileStyles={{ primaryColor: colors.danger }}
+                    />
+                    <TextInput
+                        value={propLine}
+                        onChangeText={setPropLine}
+                        placeholder="Line"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="numeric"
+                        style={{
+                            borderWidth: 1,
+                            borderColor: colors.inputBorder,
+                            borderRadius: 10,
+                            paddingHorizontal: spacing.md,
+                            paddingVertical: spacing.sm,
+                            width: 80,
+                            color: colors.textPrimary,
+                            backgroundColor: colors.inputBackground,
+                            textAlign: 'center',
+                        }}
+                    />
+                </View>
 
-            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 16 }} />
+                <View style={styles.divider} />
+                    <SelectableTileGroup<PropBetType>
+                        selectedItem={selectedBetType}
+                        itemKey={bt => bt}
+                        items={selectedTarget.playerName ? makeSortedPlayerBetTypes() : makeSortedTeamBetTypes()}
+                        handleSelect={bt => setSelectedBetType(bt)}
+                        itemDisplay={bt => bt}
+                        raiseSelection={false}
+                        noScroll={true}
+                        tileSize="sm"
+                    />
+                    <View style={styles.divider} />
+                    <SelectableTileGroup<SauceFactor>
+                        selectedItem={selectedSauceFactor}
+                        items={[SauceFactor.SPICY, SauceFactor.BITCH]}
+                        itemDisplay={s => s}
+                        itemKey={s => s}
+                        itemStyle={s => {
+                            if (s === SauceFactor.SPICY) return {primaryColor: "#ef4444"}
+                            return { primaryColor: "#a855f7"}
+                        }}
+                        handleSelect={s => setSelectedSauceFactor(s)}
+                        handleUnselect={() => setSelectedSauceFactor(null)}
+                        tileSize="sm"
+                        containerProps={{alignItems: "center"}}
+                    />
+                </>
+            )}
 
-            <SelectableTileGroup<PropBetType>
-                selectedItem={selectedBetType}
-                itemKey={bt => bt}
-                items={sortedBetTypes}
-                handleSelect={bt => setSelectedBetType(bt)}
-                itemDisplay={bt => bt}
-                raiseSelection={false}
-                noScroll={true}
-                tileSize="sm"
-            />
-
-            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 16 }} />
-
-            <SelectableTileGroup<SauceFactor>
-                selectedItem={selectedSauceFactor}
-                items={[SauceFactor.SPICY, SauceFactor.BITCH]}
-                itemDisplay={s => s}
-                itemKey={s => s}
-                itemStyle={s => {
-                    if (s === SauceFactor.SPICY) return {primaryColor: "red"}
-                    return { primaryColor: "purple"}
-                }}
-                handleSelect={s => setSelectedSauceFactor(s)}
-                handleUnselect={() => setSelectedSauceFactor(null)}
-                tileSize="md"
-                containerProps={{alignItems: "center"}}
-            />
 
             {props.showDeleteVetoOption && veto && vetoerName && (
                 <>
-                    <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 16 }} />
+                    <View style={styles.divider} />
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ flex: 1, fontSize: 13, color: '#333', marginRight: 12 }}>
+                        <Text style={{ flex: 1, ...typography.caption, color: colors.textSecondary, marginRight: spacing.md }}>
                             {vetoerName} has a {veto.approval_status.toLowerCase()} veto applied to this pick. Delete it? This action is irreversible.
                         </Text>
                         <Switch
                             value={deleteVeto}
                             onValueChange={setDeleteVeto}
-                            trackColor={{ false: '#ccc', true: '#dc2626' }}
+                            trackColor={{ false: colors.cardBorder, true: colors.danger }}
+                            thumbColor={colors.textPrimary}
                         />
                     </View>
                 </>
             )}
 
-            <View style={{ height: 1, backgroundColor: '#ccc', marginVertical: 16 }} />
+            <View style={styles.divider} />
 
             <Pressable onPress={() => handleSubmit()} disabled={!canSubmit}>
                 <View style={{
-                    backgroundColor: canSubmit ? '#3b82f6' : '#a0a0a0',
-                    borderRadius: 8,
-                    paddingVertical: 12,
+                    backgroundColor: canSubmit ? colors.accent : colors.buttonDisabled,
+                    borderRadius: 12,
+                    paddingVertical: spacing.md,
                     alignItems: 'center',
-                    opacity: canSubmit ? 1 : 0.6
+                    opacity: canSubmit ? 1 : 0.6,
+                    ...shadows.card,
                 }}>
-                    <Text style={{ color: 'white', fontWeight: 'bold' }}>{submitLabel()}</Text>
+                    <Text style={{ color: colors.textPrimary, ...typography.body }}>{submitLabel()}</Text>
                 </View>
             </Pressable>
         </View>
     )
+}
+
+const styles = {
+    divider: {
+        height: 1,
+        backgroundColor: colors.divider,
+        marginVertical: spacing.lg,
+    }
 }

@@ -7,6 +7,7 @@ import OverlayLoader from "../reusable/OverlayLoader";
 import ParlayFooter from "./ParlayFooter";
 import { ParlayLoadingStates } from "@/composables/useListParlays";
 import { useParlaysContext } from "@/contexts/parlaysContext";
+import { colors, typography, spacing } from "@/theme/colors";
 
 type Props = {
     parlays: ParlayResponseData[]
@@ -14,7 +15,6 @@ type Props = {
     loadingStates: ParlayLoadingStates,
     canLoadMore: boolean,
     loadMore: () => void,
-    error: string | null,
     editable: boolean
 }
 
@@ -28,11 +28,7 @@ export default function ParlaysList(props: Props) {
     } = useParlaysContext()
 
     function parlayIsLoading(parlayId: number) {
-        return props.loadingStates[parlayId]?.loading
-    }
-
-    function parlayError(parlayId: number) {
-        return props.loadingStates[parlayId]?.error
+        return props.loadingStates[parlayId]
     }
 
     function handleLoadMore() {
@@ -62,35 +58,39 @@ export default function ParlaysList(props: Props) {
     }
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
             <FlatList
                 ref={listRef}
                 onScroll={() => setFocusedParlayId(null)}
                 onScrollToIndexFailed={(info) => {
                     setTimeout(() => {
-                        console.log("FAILING")
                         listRef?.current?.scrollToIndex({ index: info.index, animated: true })
                     }, 200)
                 }}
                 data={props.parlays}
                 keyExtractor={(parlay) => String(parlay.id)}
+                contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: spacing.xl }}
                 renderItem={(parlay) => {
                     const isLoading = parlayIsLoading(parlay.item.id)
                     return (
                         <View>
                             <ParlayCard parlay={parlay.item} editable={props.editable} />
                             {isLoading && (
-                                <OverlayLoader loaderProps={{ name: "BallPulseSync" }} />
+                                <OverlayLoader />
                             )}
                         </View>
                     )
                 }}
                 ListFooterComponent={() => {
                     if (props.loadingAll && props.parlays.length > 0) {
-                        return <ActivityLoader size={20} text="Loading more..."/>
+                        return <ActivityLoader size={20}/>
                     }
                     if (props.canLoadMore) {
-                        return <Pressable onPress={handleLoadMore} style={{ alignItems: 'center', paddingVertical: 12 }}><Text style={{ color: '#007AFF', fontSize: 14, fontWeight: '500' }}>Load more</Text></Pressable>
+                        return (
+                            <Pressable onPress={handleLoadMore} style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+                                <Text style={{ color: colors.accent, ...typography.body, fontWeight: '600' }}>Load more</Text>
+                            </Pressable>
+                        )
                     }
                 }}
             />

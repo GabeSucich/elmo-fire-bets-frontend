@@ -1,8 +1,7 @@
-import { PickResponseData, PickVetoResponseData, VetoApprovalStatus, VetoesService } from "@/api";
+import { PickResponseData, PickVetoResponseData, VetoApprovalStatus } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
-import React, { useState } from "react";
+import React from "react";
 import VotableVeto from "./veto-views/VotableVeto";
-import { setApiErrorMsg } from "@/util/error";
 import VetoPickDisplay from "./veto-views/VetoPickDisplay";
 import MyVeto from "./veto-views/MyVeto";
 
@@ -15,9 +14,6 @@ type Props = {
 }
 
 export default function VetoStatusCard(props: Props) {
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-
     const {
         gamblerId,
         gamblers

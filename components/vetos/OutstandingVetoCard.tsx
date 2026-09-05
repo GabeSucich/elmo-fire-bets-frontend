@@ -3,6 +3,7 @@ import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import React from "react"
 import { Text, View } from "react-native"
 import ActionButton from "../reusable/ActionButton"
+import { colors, typography, spacing } from "@/theme/colors"
 
 type PendingTransition = "editing-pick" | "locking-parlay"
 
@@ -24,7 +25,7 @@ export default function OutstandingVetoCard({ veto, pendingTransition, onCancel,
 
     const voteSummary = (
         <>
-            <Text style={{ fontWeight: 'bold', color: '#166534' }}>{affirmativeCount} {approvalSingularPlural}</Text> and <Text style={{ fontWeight: 'bold', color: '#991b1b' }}>{nonAffirmativeCount} {rejectionSingularPlural}</Text>
+            <Text style={{ fontWeight: 'bold', color: colors.success }}>{affirmativeCount} {approvalSingularPlural}</Text> and <Text style={{ fontWeight: 'bold', color: colors.danger }}>{nonAffirmativeCount} {rejectionSingularPlural}</Text>
         </>
     )
 
@@ -32,17 +33,28 @@ export default function OutstandingVetoCard({ veto, pendingTransition, onCancel,
 
     return (
         <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
+            <Text style={{
+                ...typography.heading,
+                color: colors.textPrimary,
+                marginBottom: spacing.md,
+                textAlign: 'center',
+            }}>
                 {isEditing ? "Confirm Veto Deletion" : "Outstanding Veto"}
             </Text>
-            <Text style={{ fontSize: 14, color: '#333', lineHeight: 20, marginBottom: 20, textAlign: 'center' }}>
+            <Text style={{
+                ...typography.body,
+                color: colors.textSecondary,
+                lineHeight: 22,
+                marginBottom: spacing.xl,
+                textAlign: 'center',
+            }}>
                 {isEditing
                     ? <>There is an active veto from {ownerName} with {voteSummary}. Updating this pick will delete that veto. Make sure that editing your pick is high integrity.</>
                     : <>There is an undecided veto from {ownerName} with {voteSummary}. Locking the parlay will leave this veto in an undecided state, and no more voting will be allowed.</>
                 }
             </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
-                <ActionButton text="Cancel" onPress={onCancel} color="#e0e0e0" />
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md }}>
+                <ActionButton text="Cancel" onPress={onCancel} color={colors.buttonSecondary} />
                 <ActionButton text={isEditing ? "Update pick" : "Lock parlay"} onPress={onProceed} />
             </View>
         </View>

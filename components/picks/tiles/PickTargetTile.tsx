@@ -3,6 +3,7 @@ import React from "react";
 import Tile from "../../reusable/tiles/Tile";
 import { TileSize } from "../../reusable/tiles/common";
 import { PickDisplayUtil } from "@/util/picks";
+import { colors } from "@/theme/colors";
 
 type Props = {
     pick: PickResponseData
@@ -16,7 +17,7 @@ export default function PickTargetTile({ pick, size = "sm" }: Props) {
         <Tile<String>
             item={display}
             display={display}
-            tileStyles={{ primaryColor: "gray" }}
+            tileStyles={{ primaryColor: colors.buttonSecondary }}
             size={size}
         />
     )

@@ -2,6 +2,7 @@ import { PickVetoResponseData } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import React from "react";
 import { Text, View } from "react-native";
+import { colors, typography, spacing } from "@/theme/colors";
 
 type Props = {
     veto: PickVetoResponseData
@@ -17,19 +18,33 @@ export default function VetoProgress({ veto }: Props) {
 
 
     return (
-        <View style={{ flexDirection: 'row', padding: 12 }}>
+        <View style={{
+            flexDirection: 'row',
+            padding: spacing.md,
+            backgroundColor: colors.card,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            marginTop: spacing.sm,
+        }}>
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', color: '#16a34a', marginBottom: 8 }}>Approvers</Text>
+                <Text style={{ fontWeight: 'bold', color: colors.success, marginBottom: spacing.sm, ...typography.caption }}>Approvers</Text>
                 {affirmativeGamblerNames.map(name => (
-                    <Text key={name} style={{ fontSize: 13, color: '#333', marginBottom: 4 }}>{name}</Text>
+                    <Text key={name} style={{ ...typography.caption, color: colors.textPrimary, marginBottom: spacing.xs }}>{name}</Text>
                 ))}
+                {affirmativeGamblerNames.length === 0 && (
+                    <Text style={{ ...typography.caption, color: colors.textMuted, fontStyle: 'italic' }}>None</Text>
+                )}
             </View>
-            <View style={{ width: 1, backgroundColor: '#ccc' }} />
+            <View style={{ width: 1, backgroundColor: colors.divider }} />
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', color: '#dc2626', marginBottom: 8 }}>Rejectors</Text>
+                <Text style={{ fontWeight: 'bold', color: colors.danger, marginBottom: spacing.sm, ...typography.caption }}>Rejectors</Text>
                 {nonAffirmativeGamblerNames.map(name => (
-                    <Text key={name} style={{ fontSize: 13, color: '#333', marginBottom: 4 }}>{name}</Text>
+                    <Text key={name} style={{ ...typography.caption, color: colors.textPrimary, marginBottom: spacing.xs }}>{name}</Text>
                 ))}
+                {nonAffirmativeGamblerNames.length === 0 && (
+                    <Text style={{ ...typography.caption, color: colors.textMuted, fontStyle: 'italic' }}>None</Text>
+                )}
             </View>
         </View>
     )

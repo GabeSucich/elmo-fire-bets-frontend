@@ -4,10 +4,10 @@ import { Text, View } from "react-native"
 import PickEditor from "./PickEditor"
 import { PickCreateEditData } from "./common"
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch"
-import ErrorView from "../reusable/ErrorView"
 import OverlayLoader from "../reusable/OverlayLoader"
-import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates"
+import { useLoadingState } from "@/composables/useLoadingState"
 import useApiActionState from "@/composables/useApiActionState"
+import { colors, typography, spacing } from "@/theme/colors"
 
 type Props = {
     pick: PickResponseData | null
@@ -22,8 +22,8 @@ export default function OwnerPickEditor(props: Props) {
     } = useGamblingSeasonContext()
 
     const {
-        error, loading, setError, setLoading
-    } = useErrorLoadingStates()
+        loading, setLoading
+    } = useLoadingState()
 
     const gambler = gamblers[props.gamblerId]
 
@@ -42,7 +42,6 @@ export default function OwnerPickEditor(props: Props) {
         }),
         res => props.onPickCorrected(res.pick),
         setLoading,
-        setError,
         "There was an error creating the pick"
     )
 
@@ -58,7 +57,6 @@ export default function OwnerPickEditor(props: Props) {
         }),
         res => props.onPickCorrected(res.pick),
         setLoading,
-        setError,
         "There was an error updating the pick"
     )
 
@@ -76,14 +74,19 @@ export default function OwnerPickEditor(props: Props) {
     return (
         <View>
             {loading && <OverlayLoader loaderProps={{text: `Saving correction for ${gambler.firstName}...`, size: 20}} />}
-            <Text style={{fontWeight: 'bold', fontStyle: 'italic', textAlign: 'center'}}>{ title }</Text>
+            <Text style={{
+                ...typography.heading,
+                fontStyle: 'italic',
+                textAlign: 'center',
+                color: colors.textPrimary,
+                marginVertical: spacing.sm,
+            }}>{ title }</Text>
             <PickEditor
                 pick={props.pick}
                 handleEdit={handleEdit}
                 showDeleteVetoOption={true}
                 allowInPlaceCorrection={!props.pick?.corrected_line}
             />
-            <ErrorView errorMsg={error}/>
         </View>
     )
 }

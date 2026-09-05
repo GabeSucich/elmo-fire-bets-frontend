@@ -1,6 +1,7 @@
 import React from "react"
-import {  StyleProp, Text, TouchableOpacity, View, ViewStyle } from "react-native"
+import { StyleProp, Text, TouchableOpacity, View, ViewStyle } from "react-native"
 import { TileSize, TileStyleProps, extractStyleProps } from "./common"
+import { colors } from "@/theme/colors"
 
 type Props<T> = {
     item: T
@@ -32,10 +33,10 @@ export default function SelectableTile<T>(props: Props<T>) {
     }
 
     return (
-        <TouchableOpacity onPress={() => handlePress()}>
+        <TouchableOpacity onPress={() => handlePress()} activeOpacity={0.7}>
             <View style={[props.style, {
-                backgroundColor: props.isSelected ? primaryColor : 'white',
-                borderColor: primaryColor,
+                backgroundColor: props.isSelected ? primaryColor : colors.card,
+                borderColor: props.isSelected ? primaryColor : colors.cardBorder,
                 borderWidth: 1,
                 borderRadius,
                 paddingHorizontal,
@@ -44,8 +45,9 @@ export default function SelectableTile<T>(props: Props<T>) {
             }]}>
                 <Text
                     style={{
-                        color: props.isSelected ? 'white' : primaryColor,
-                        fontSize
+                        color: props.isSelected ? colors.textPrimary : colors.textSecondary,
+                        fontSize,
+                        fontWeight: '500',
                     }}
                 >
                     { props.display instanceof Function ? props.display(props.item) : props.display }

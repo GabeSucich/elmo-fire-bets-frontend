@@ -1,6 +1,7 @@
 import React from "react"
 import { StyleProp, Text, View, ViewStyle } from "react-native"
 import { TileSize, TileStyleProps, extractStyleProps } from "./common"
+import { colors } from "@/theme/colors"
 
 type Props<T> = {
     item: T
@@ -32,8 +33,9 @@ export default function Tile<T>(props: Props<T>) {
         }]}>
             <Text
                 style={{
-                    color: 'white',
-                    fontSize
+                    color: colors.textPrimary,
+                    fontSize,
+                    fontWeight: '500',
                 }}
             >
                 { props.display instanceof Function ? props.display(props.item) : props.display }

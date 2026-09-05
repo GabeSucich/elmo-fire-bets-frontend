@@ -1,5 +1,4 @@
 import { GamblingSeasonService, GamblingSeasonState } from "@/api"
-import { setApiErrorMsg } from "@/util/error"
 import { useEffect, useState } from "react"
 import useApiActionState from "./useApiActionState"
 
@@ -14,7 +13,6 @@ export interface GamblerSeason {
 export function useListSeasons() {
     const [gamblerSeasons, setGamblerSeasons] = useState<GamblerSeason[]>([])
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     const {
         execute: loadSeasonSelections
@@ -34,7 +32,8 @@ export function useListSeasons() {
                 setGamblerSeasons(seasons)
         },
         setLoading,
-        setError,
+        "There was an error loading your gambling seasons",
+        { retryable: true }
     )
 
     useEffect(() => {
@@ -44,8 +43,7 @@ export function useListSeasons() {
     return {
         gamblerSeasons,
         loadSeasonSelections,
-        loading,
-        error
+        loading
     }
 
 }

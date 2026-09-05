@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "Elmo Fire Bets",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -28,22 +28,29 @@
       "package": "com.gabriel.elmofire"
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/elmofire.png"
     },
     "plugins": [
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/elmofire.png",
-          "resizeMode": "cover",
+          "image": "./assets/images/elmo.png",
+          "resizeMode": "contain",
           "backgroundColor": "#ffffff",
+          "enableFullScreenImage_legacy": true,
           "dark": {
             "backgroundColor": "#000000"
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Elmo Fire Bets uses your photos so you can upload a screenshot of a parlay slip and correct picks from it."
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true

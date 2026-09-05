@@ -1,6 +1,8 @@
 import React from "react"
-import { Modal, Text, View } from "react-native"
+import { Text, View } from "react-native"
+import AppModal from "@/components/reusable/AppModal"
 import ActionButton from "../../reusable/ActionButton"
+import { colors, shadows, spacing, typography } from "@/theme/colors"
 
 type Props = {
     visible: boolean
@@ -10,26 +12,51 @@ type Props = {
 
 export default function UnlockParlayModal({ visible, onCancel, onSubmit }: Props) {
     return (
-        <Modal
+        <AppModal
             visible={visible}
             animationType="fade"
             transparent={true}
             onRequestClose={onCancel}
         >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <View style={{ width: '85%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.overlay,
+            }}>
+                <View style={{
+                    width: '85%',
+                    backgroundColor: colors.backgroundSecondary,
+                    borderRadius: 20,
+                    padding: spacing.xl,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    ...shadows.modal,
+                }}>
+                    <Text style={{
+                        ...typography.heading,
+                        color: colors.textPrimary,
+                        marginBottom: spacing.md,
+                        textAlign: 'center',
+                    }}>
                         Unlock Parlay?
                     </Text>
-                    <Text style={{ fontSize: 14, color: '#333', lineHeight: 20, marginBottom: 20, textAlign: 'center' }}>
+                    <Text style={{
+                        ...typography.body,
+                        color: colors.textSecondary,
+                        lineHeight: 22,
+                        marginBottom: spacing.xl,
+                        textAlign: 'center',
+                    }}>
                         Setting this parlay back to the "Building" state will undo all pick corrections that may have been applied and delete all pick results. Any vetoes that were not approved will have to be recreated.
                     </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
-                        <ActionButton text="Cancel" onPress={onCancel} color="#e0e0e0" />
-                        <ActionButton text="Unlock Parlay" onPress={onSubmit} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md }}>
+                        <ActionButton text="Cancel" onPress={onCancel} color={colors.buttonSecondary} />
+                        <ActionButton text="Unlock Parlay" onPress={onSubmit} color={colors.warning} />
                     </View>
                 </View>
             </View>
-        </Modal>
+        </AppModal>
     )
 }

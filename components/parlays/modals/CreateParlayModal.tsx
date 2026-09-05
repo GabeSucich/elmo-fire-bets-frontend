@@ -1,13 +1,14 @@
 import React from "react";
-import { View, Modal, Text, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
+import AppModal from "@/components/reusable/AppModal";
 import OverlayLoader from "@/components/reusable/OverlayLoader";
 import { ParlaysService } from "@/api";
 import { ParlayEditArgs } from "../common";
 import ParlayEditCard from "../ParlayEditCard";
 import useApiActionState from "@/composables/useApiActionState";
-import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import { useLoadingState } from "@/composables/useLoadingState";
 import { useParlaysContext } from "@/contexts/parlaysContext";
-import ErrorView from "@/components/reusable/ErrorView";
+import { colors, shadows, spacing, typography } from "@/theme/colors";
 
 type CreateParlayModalProps = {
     visible: boolean
@@ -16,7 +17,7 @@ type CreateParlayModalProps = {
 }
 
 export default function CreateParlayModal({ visible, onClose, seasonId }: CreateParlayModalProps) {
-    const { setLoading, setError, error, loading } = useErrorLoadingStates()
+    const { setLoading, loading } = useLoadingState()
     const { refreshParlays } = useParlaysContext()
 
     const {
@@ -34,29 +35,41 @@ export default function CreateParlayModal({ visible, onClose, seasonId }: Create
             refreshParlays()
         },
         setLoading,
-        setError,
         "Error creating new parlay"
     )
 
     return (
-        <Modal
+        <AppModal
             visible={visible}
             transparent
             animationType="fade"
             onRequestClose={onClose}
         >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <View style={{ width: '90%', backgroundColor: 'white', borderRadius: 10, padding: 20 }}>
-                    <Pressable onPress={onClose}>
-                        <Text style={{ fontSize: 18 }}>✕</Text>
-                    </Pressable>
+            <View style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.overlay,
+            }}>
+                <View style={{
+                    width: '90%',
+                    backgroundColor: colors.backgroundSecondary,
+                    borderRadius: 20,
+                    padding: spacing.xl,
+                    borderWidth: 1,
+                    borderColor: colors.cardBorder,
+                    ...shadows.modal,
+                }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
+                        <Text style={{ ...typography.title, color: colors.textPrimary }}>New Parlay</Text>
+                        <Pressable onPress={onClose} style={{ padding: spacing.xs }}>
+                            <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
+                        </Pressable>
+                    </View>
                     <ParlayEditCard handleEdit={createParlay} />
                     {loading && <OverlayLoader />}
                 </View>
-                {
-                    error && <ErrorView errorMsg={error}/>
-                }
             </View>
-        </Modal>
+        </AppModal>
     )
 }

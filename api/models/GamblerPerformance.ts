@@ -2,12 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { GamblerBaseMetrics } from './GamblerBaseMetrics';
+import type { GamblerAdvancedMetrics } from './GamblerAdvancedMetrics';
 import type { ScoreCorrection } from './ScoreCorrection';
 export type GamblerPerformance = {
     gambler_id: number;
     corrected_score: number;
-    metrics: GamblerBaseMetrics;
+    metrics: GamblerAdvancedMetrics;
     deductions: Record<string, ScoreCorrection>;
     augmentations: Record<string, ScoreCorrection>;
 };

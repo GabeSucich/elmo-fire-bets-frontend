@@ -1,33 +1,49 @@
 import { PropBetType } from "@/api";
 
-const BET_TYPE_SORT_MAP: Record<PropBetType, number> = {
-    [PropBetType.REC_YARDS]: 0,
-    [PropBetType.RUSH_YARDS]: 1,
-    [PropBetType.RUSH_REC_YDS]: 2,
-    [PropBetType.PASSING_YDS]: 3,
-    [PropBetType.RECEPTIONS]: 4,
-    [PropBetType.RUSH_ATTEMPTS]: 5,
-    [PropBetType.TDS]: 6,
-    [PropBetType.FGS]: 7,
-    [PropBetType.PASSING_INTS]: 8,
-    [PropBetType.PASSING_TDS]: 9,
-    [PropBetType.PASS_COMPLETIONS]: 10,
-    [PropBetType.PASS_ATTEMPTS]: 11,
-    [PropBetType.SACKS]: 12,
-    [PropBetType.TACKLES_ASSISTS]: 13,
-    [PropBetType.TARGETS]: 14,
-    [PropBetType.LONGEST_RUSH]: 15,
-    [PropBetType.LONGEST_RECEPTION]: 16,
-    [PropBetType.LONGEST_COMPLETION]: 17,
-    [PropBetType.LONGEST_TD]: 18
+type TargetPosType = "Offense" | "Defense" | "Team"
+
+const BET_TYPE_SORT_MAP: Record<PropBetType, {
+    order: number,
+    posType: TargetPosType
+}> = {
+    [PropBetType.REC_YARDS]: { order: 0, posType: "Offense" },
+    [PropBetType.RUSH_YARDS]: { order: 1, posType: "Offense" },
+    [PropBetType.RUSH_REC_YDS]: { order: 2, posType: "Offense" },
+    [PropBetType.PASSING_YDS]: { order: 3, posType: "Offense" },
+    [PropBetType.RECEPTIONS]: { order: 4, posType: "Offense" },
+    [PropBetType.RUSH_ATTEMPTS]: { order: 5, posType: "Offense" },
+    [PropBetType.TDS]: { order: 6, posType: "Offense" },
+    [PropBetType.FGS]: { order: 7, posType: "Team" },
+    [PropBetType.PASSING_INTS]: { order: 8, posType: "Offense" },
+    [PropBetType.PASSING_TDS]: { order: 9, posType: "Offense" },
+    [PropBetType.PASS_COMPLETIONS]: { order: 10, posType: "Offense" },
+    [PropBetType.PASS_ATTEMPTS]: { order: 11, posType: "Offense" },
+    [PropBetType.SACKS]: { order: 12, posType: "Defense" },
+    [PropBetType.TACKLES_ASSISTS]: { order: 13, posType: "Defense" },
+    [PropBetType.TARGETS]: { order: 14, posType: "Offense" },
+    [PropBetType.LONGEST_RUSH]: { order: 15, posType: "Offense" },
+    [PropBetType.LONGEST_RECEPTION]: { order: 16, posType: "Offense" },
+    [PropBetType.LONGEST_COMPLETION]: { order: 17, posType: "Offense" },
+    [PropBetType.LONGEST_TD]: { order: 18, posType: "Offense" },
 }
+
+
+const TEAM_ONLY_BET_TYPES = [PropBetType.FGS]
 
 export function makeSortedBetTypes(): PropBetType[] {
     return Object.values(PropBetType).sort((a, b) => {
-        return BET_TYPE_SORT_MAP[a] - BET_TYPE_SORT_MAP[b]
+        return BET_TYPE_SORT_MAP[a].order - BET_TYPE_SORT_MAP[b].order
     })
 }
 
 export function betTypeToColor(betType: PropBetType): string {
     return "blue"
+}
+
+export function makeSortedPlayerBetTypes(): PropBetType[] {
+    return makeSortedBetTypes().filter(bt => !TEAM_ONLY_BET_TYPES.includes(bt))
+}
+
+export function makeSortedTeamBetTypes(): PropBetType[] {
+    return makeSortedBetTypes().filter(bt => TEAM_ONLY_BET_TYPES.includes(bt))
 }

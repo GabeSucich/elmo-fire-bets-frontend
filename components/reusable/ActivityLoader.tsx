@@ -4,6 +4,7 @@ import {
   IndicatorName,
   ALL_INDICATORS
 } from 'react-native-loader-kit';
+import { colors, typography } from "@/theme/colors";
 
 export type ActivityLoaderProps = {
     text?: string
@@ -22,7 +23,7 @@ function getRandomIndicator(): IndicatorName {
 export default function ActivityLoader({
     text,
     name,
-    color="#000000",
+    color=colors.accent,
     verticalAlign="center",
     containerStyle,
     loaderStyle,
@@ -31,9 +32,9 @@ export default function ActivityLoader({
     const indicatorName: IndicatorName = name ?? getRandomIndicator()
     return (
         <View style={[
-            { 
-                flex: 1, 
-                alignItems: "center", 
+            {
+                flex: 1,
+                alignItems: "center",
                 justifyContent: verticalAlign === "center" ? "center" : "flex-start",
                 marginTop: verticalAlign === "top" ? 20 : 0
             },
@@ -43,9 +44,9 @@ export default function ActivityLoader({
                 key={`loader-${text}`}
                 name={indicatorName}
                 style={[{ width: size, height: size }, loaderStyle]}
-                color={color}
+                color={color as string}
             />
-            { text && <Text style={{ fontStyle: "italic", color: color, marginTop: 20 }}>{ text }</Text> }
+            { text && <Text style={{ fontStyle: "italic", color: colors.textSecondary, marginTop: 20, ...typography.body }}>{ text }</Text> }
         </View>
     )
 }

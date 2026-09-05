@@ -1,5 +1,6 @@
 import { ReactElement, SetStateAction } from "react"
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native"
+import { colors, spacing } from "@/theme/colors"
 
 type TabSize = "sm" | "md" | "lg"
 
@@ -8,6 +9,8 @@ type TabColorProps = {
     activeBackgroundColor?: string
     textColor?: string
     activeTextColor?: string
+    borderColor?: string
+    activeBorderColor?: string
 }
 
 interface Props<T> {
@@ -21,7 +24,7 @@ interface Props<T> {
 }
 
 const sizeStyles = {
-    sm: { paddingVertical: 4, paddingHorizontal: 10, fontSize: 12, borderRadius: 14 },
+    sm: { paddingVertical: 6, paddingHorizontal: 12, fontSize: 12, borderRadius: 14 },
     md: { paddingVertical: 8, paddingHorizontal: 16, fontSize: 14, borderRadius: 20 },
     lg: { paddingVertical: 12, paddingHorizontal: 22, fontSize: 16, borderRadius: 26 },
 } as const
@@ -42,25 +45,28 @@ export default function TabButtons<T>({
     return (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, flexShrink: 0 }} contentContainerStyle={styles.tabRow}>
             {tabs.map((tab) => {
-                const colors = resolveColors(tab)
+                const customColors = resolveColors(tab)
                 return (
                     <TouchableOpacity
                         key={getKey(tab)}
                         style={[
                             styles.tabButton,
                             { paddingVertical, paddingHorizontal, borderRadius },
-                            colors?.backgroundColor && { backgroundColor: colors.backgroundColor },
+                            customColors?.backgroundColor && { backgroundColor: customColors.backgroundColor },
+                            customColors?.borderColor && { borderColor: customColors.borderColor },
                             isActive(tab) && styles.tabButtonActive,
-                            isActive(tab) && colors?.activeBackgroundColor && { backgroundColor: colors.activeBackgroundColor },
+                            isActive(tab) && customColors?.activeBackgroundColor && { backgroundColor: customColors.activeBackgroundColor },
+                            isActive(tab) && customColors?.activeBorderColor && { borderColor: customColors.activeBorderColor },
                         ]}
                         onPress={() => setActiveTab(tab)}
+                        activeOpacity={0.7}
                     >
                         <Text style={[
                             styles.tabText,
                             { fontSize },
-                            colors?.textColor && { color: colors.textColor },
+                            customColors?.textColor && { color: customColors.textColor },
                             isActive(tab) && styles.tabTextActive,
-                            isActive(tab) && colors?.activeTextColor && { color: colors.activeTextColor },
+                            isActive(tab) && customColors?.activeTextColor && { color: customColors.activeTextColor },
                         ]}>
                             {getDisplay(tab)}
                         </Text>
@@ -74,20 +80,23 @@ export default function TabButtons<T>({
 const styles = StyleSheet.create({
     tabRow: {
         flexDirection: "row",
-        gap: 8,
-        padding: 12,
+        gap: spacing.sm,
+        padding: spacing.md,
     },
     tabButton: {
-        backgroundColor: "#e0e0e0",
+        backgroundColor: colors.card,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
     },
     tabButtonActive: {
-        backgroundColor: "#007AFF",
+        backgroundColor: colors.accent,
+        borderColor: colors.accent,
     },
     tabText: {
-        color: "#666",
+        color: colors.textSecondary,
         fontWeight: "500",
     },
     tabTextActive: {
-        color: "#fff",
+        color: colors.textPrimary,
     },
 })

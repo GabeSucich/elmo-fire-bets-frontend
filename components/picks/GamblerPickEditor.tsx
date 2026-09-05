@@ -1,14 +1,15 @@
 import { PickResponseData, PicksService, UpdatePickRequestData, VetoApprovalStatus } from "@/api";
 import React, { useState } from "react";
-import { Modal, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import AppModal from "@/components/reusable/AppModal";
 import OutstandingVetoCard from "../vetos/OutstandingVetoCard";
 import { PickCreateEditData } from "./common";
 import PickEditor from "./PickEditor";
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch";
-import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import { useLoadingState } from "@/composables/useLoadingState";
 import useApiActionState from "@/composables/useApiActionState";
-import ErrorView from "../reusable/ErrorView";
 import OverlayLoader from "../reusable/OverlayLoader";
+import { colors, shadows, spacing, typography } from "@/theme/colors";
 
 type Props = {
     parlayId: number,
@@ -20,10 +21,8 @@ type Props = {
 export default function GamblerPickEditor(props: Props) {
     const {
         loading: saving,
-        setLoading: setSaving,
-        error,
-        setError
-    } = useErrorLoadingStates()
+        setLoading: setSaving
+    } = useLoadingState()
     const [vetoConfirmVisible, setVetoConfirmVisible] = useState(false)
     const [pendingEditData, setPendingEditData] = useState<PickCreateEditData | null>(null)
 
@@ -55,7 +54,6 @@ export default function GamblerPickEditor(props: Props) {
         _createPick,
         res => props.onPickSaved(res.pick),
         setSaving,
-        setError,
         "There was an error submitting your pick"
     )
 
@@ -65,7 +63,6 @@ export default function GamblerPickEditor(props: Props) {
         _updatePick,
         res => props.onPickSaved(res.pick),
         setSaving,
-        setError,
         "There was an error saving your pick"
     )
 
@@ -116,22 +113,38 @@ export default function GamblerPickEditor(props: Props) {
             />
             {saving && <OverlayLoader />}
             {hasApprovedVeto && (
-                <Text style={{ color: 'red', fontStyle: 'italic', marginTop: 8, textAlign: 'center' }}>
+                <Text style={{
+                    color: colors.danger,
+                    fontStyle: 'italic',
+                    marginTop: spacing.sm,
+                    textAlign: 'center',
+                    ...typography.body,
+                }}>
                     Cannot edit a pick which has an approved veto
                 </Text>
             )}
-            {error && (
-                <ErrorView errorMsg={error} />
-            )}
             {props.pick?.veto && (
-                <Modal
+                <AppModal
                     visible={vetoConfirmVisible}
                     animationType="fade"
                     transparent={true}
                     onRequestClose={() => setVetoConfirmVisible(false)}
                 >
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                        <View style={{ width: '85%', backgroundColor: 'white', borderRadius: 10, padding: 20 }}>
+                    <View style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: colors.overlay,
+                    }}>
+                        <View style={{
+                            width: '85%',
+                            backgroundColor: colors.backgroundSecondary,
+                            borderRadius: 20,
+                            padding: spacing.xl,
+                            borderWidth: 1,
+                            borderColor: colors.cardBorder,
+                            ...shadows.modal,
+                        }}>
                             <OutstandingVetoCard
                                 veto={props.pick.veto}
                                 pendingTransition="editing-pick"
@@ -145,7 +158,7 @@ export default function GamblerPickEditor(props: Props) {
                             />
                         </View>
                     </View>
-                </Modal>
+                </AppModal>
             )}
         </View>
     )

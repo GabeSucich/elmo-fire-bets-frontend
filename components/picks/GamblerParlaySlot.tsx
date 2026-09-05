@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ParlayResponseData, ParlayResult, ParlayState, PickResponseData, PickResult, VetoApprovalStatus, VetoResult } from "@/api"
 import { Gambler, useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
-import { Pressable, Text, TouchableOpacity, View } from "react-native"
+import { Animated, Pressable, Text, TouchableOpacity, View } from "react-native"
 import { useParlaysContext } from "@/contexts/parlaysContext"
 import PickDisplay from "./PickDisplay"
 import VetoStatusMini from "../vetos/VetoStatusMini"
@@ -13,6 +13,8 @@ import { PickResultColors, VetoResultColors } from "@/util/pickResults"
 import { TileSize } from "../reusable/tiles/common"
 import EntotypeIcon from 'react-native-vector-icons/Entypo'
 import FeatherIcon from 'react-native-vector-icons/Feather'
+import { colors, typography, spacing } from "@/theme/colors"
+import { PickDisplayUtil } from "@/util/picks"
 
 
 type Props = {
@@ -22,6 +24,32 @@ type Props = {
     editable: boolean
     pickTileSize?: TileSize
     allowResultEditing: boolean
+    hidePickDisplay?: boolean
+}
+
+function AnimatedPickDisplay({ pick, size, hidden }: { pick: PickResponseData, size?: TileSize, hidden: boolean }) {
+    const animValue = useRef(new Animated.Value(hidden ? 0 : 1)).current
+
+    useEffect(() => {
+        Animated.timing(animValue, {
+            toValue: hidden ? 0 : 1,
+            duration: 250,
+            useNativeDriver: false,
+        }).start()
+    }, [hidden])
+
+    return (
+        <Animated.View style={{
+            opacity: animValue,
+            maxHeight: animValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 200],
+            }),
+            overflow: 'hidden',
+        }}>
+            <PickDisplay pick={pick} size={size} showTarget={false} />
+        </Animated.View>
+    )
 }
 
 export default function GamblerParlaySlot(props: Props) {
@@ -34,7 +62,7 @@ export default function GamblerParlaySlot(props: Props) {
     const {
         refreshParlay
     } = useParlaysContext()
-    
+
     const parlayId = props.parlay.id
 
     const isBuilding = props.parlay.state === ParlayState.BUILDING
@@ -45,13 +73,13 @@ export default function GamblerParlaySlot(props: Props) {
     const isMyOwnedParlay = gamblerId == props.parlay.owner_id
     const canCreatePick = props.editable && isMyGambler && props.pick === null && isBuilding
     const canEditPick = props.editable && isBuilding && isMyGambler && props.pick !== null
-    
+
     const canCreateVeto = () => {
         if (!isBuilding || isMyGambler || !props.pick || props.pick?.veto) return false
         const otherVetoes = props.parlay.picks.filter(p => p.id !== props.pick?.id).map(p => p.veto)
         return !otherVetoes.some(v => v && v?.approval_status !== VetoApprovalStatus.REJECTED)
     }
-    
+
     const vetoPending = () => {
         if (!isBuilding || !props.editable) return false
         const veto = props.pick?.veto
@@ -97,21 +125,25 @@ export default function GamblerParlaySlot(props: Props) {
     }
 
 
+    /**
+     * What happened to the gambler whose pick this was, when it was vetoed away from them.
+     * The result button beside it shows the *vetoer's* outcome, which is a different thing.
+     * Rendered next to their name, so it does not repeat it.
+     */
     function getVetoedExtraInfo(pick: PickResponseData): {text: string, color: string} | null {
         if (!pick.result) return null
-        const gamblerFirstName = gamblers[pick.gambler_id].firstName
         const veto = pick.veto
         if (veto?.approval_status !== VetoApprovalStatus.APPROVED) return null
         let text = ''
         switch (pick.result) {
             case PickResult.BOZO:
-                text = `${gamblerFirstName} BOZO`
+                text = '🤡'
                 break;
             case PickResult.WIN:
-                text = `${gamblerFirstName} Win`
+                text = 'Win'
                 break;
             case PickResult.LOSS:
-                text = `${gamblerFirstName} Loss`
+                text = 'Loss'
                 break;
             default:
                 break
@@ -126,17 +158,26 @@ export default function GamblerParlaySlot(props: Props) {
     const vetoedExtraInfo = props.pick ? getVetoedExtraInfo(props.pick) : null
 
     return (
-        <View>
+        <View style={{ paddingVertical: spacing.xs }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text>{displayName}</Text>
+                {/* The bet leads; whose bet it is sits at the foot of the slot. */}
+                {props.pick ? (
+                    <Text style={{ color: colors.textPrimary, ...typography.body, fontWeight: '600', flexShrink: 1 }}>
+                        {PickDisplayUtil.playerTeamDisplay(props.pick)}
+                    </Text>
+                ) : (
+                    <Text style={{ color: colors.textMuted, ...typography.body, fontStyle: 'italic' }}>
+                        No pick yet
+                    </Text>
+                )}
                 {canCreatePick && (
                     <Pressable onPress={() => setPickEditorVisible(true)}>
-                        <EntotypeIcon name="squared-plus" size={15} color="green" style={{marginLeft: 5}} />
+                        <EntotypeIcon name="squared-plus" size={16} color={colors.success} style={{marginLeft: spacing.sm}} />
                     </Pressable>
                 )}
                 {canEditPick && (
                     <Pressable onPress={() => setPickEditorVisible(true)}>
-                        <FeatherIcon name="edit" size={15} color="blue" style={{marginLeft: 5}} />
+                        <FeatherIcon name="edit" size={15} color={colors.accent} style={{marginLeft: spacing.sm}} />
                     </Pressable>
                 )}
                 {canCreateVeto() && (
@@ -144,7 +185,16 @@ export default function GamblerParlaySlot(props: Props) {
                         onPress={() => setVetoModalVisible(true)}
                         style={{ marginLeft: 'auto' }}
                     >
-                        <Text style={{ color: 'white', backgroundColor: '#dc2626', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, fontSize: 12, fontWeight: 'bold' }}>
+                        <Text style={{
+                            color: colors.textPrimary,
+                            backgroundColor: colors.danger,
+                            paddingHorizontal: spacing.sm,
+                            paddingVertical: spacing.xs,
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 'bold',
+                            overflow: 'hidden',
+                        }}>
                             Veto
                         </Text>
                     </Pressable>
@@ -160,33 +210,73 @@ export default function GamblerParlaySlot(props: Props) {
                     </View>
                 )}
                 {isOpen || isClosed ? (
-                    <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{
+                        marginLeft: 'auto',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        flexWrap: 'wrap',
+                        gap: spacing.sm,
+                    }}>
                         {vetoLocked() && (
                             <VetoStatusMini veto={props.pick!.veto!} />
                         )}
-                        {props.pick && (
-                            <TouchableOpacity onPress={() => {props.allowResultEditing && !isClosed && setResultEditorVisible(true)}}>
-                                <View style={{ backgroundColor: buttonResultDisplay(props.pick).color, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
-                                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
-                                        { buttonResultDisplay(props.pick).text }
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        )}
+                        {props.pick && (() => {
+                            const result = buttonResultDisplay(props.pick)
+                            // A recorded result is information and keeps its colour. A prompt to
+                            // add one is just an affordance, and five filled blue buttons down the
+                            // card drowned out the picks themselves — so that state is outlined.
+                            const awaitingResult = result.color === PickResultColors.None
+                            return (
+                                <TouchableOpacity onPress={() => {props.allowResultEditing && !isClosed && setResultEditorVisible(true)}} activeOpacity={0.7}>
+                                    <View style={{
+                                        backgroundColor: awaitingResult ? 'transparent' : result.color,
+                                        borderWidth: awaitingResult ? 1 : 0,
+                                        borderColor: colors.cardBorder,
+                                        paddingHorizontal: spacing.sm,
+                                        paddingVertical: spacing.xs,
+                                        borderRadius: 6,
+                                    }}>
+                                        <Text style={{
+                                            color: awaitingResult ? colors.textSecondary : colors.textPrimary,
+                                            fontSize: 11,
+                                            fontWeight: '600',
+                                        }}>
+                                            { result.text }
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            )
+                        })()}
                     </View>
                 ) : null}
             </View>
-            {
-                vetoedExtraInfo &&
-                <View style={{ alignSelf: 'flex-start', backgroundColor: vetoedExtraInfo.color, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginTop: 4 }}>
-                    <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
-                        { vetoedExtraInfo.text }
-                    </Text>
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: spacing.sm,
+            }}>
+                <View style={{ flexShrink: 1 }}>
+                    { props.pick &&
+                        <AnimatedPickDisplay pick={props.pick} size={props.pickTileSize} hidden={!!props.hidePickDisplay} />
+                    }
                 </View>
-            }
-            { props.pick &&
-                <PickDisplay pick={props.pick} size={props.pickTileSize}/>
-            }
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 0 }}>
+                    {vetoedExtraInfo && (
+                        <Text style={{
+                            color: vetoedExtraInfo.color,
+                            ...typography.caption,
+                            fontWeight: '700',
+                        }}>{ vetoedExtraInfo.text }</Text>
+                    )}
+                    <Text style={{
+                        color: colors.textSecondary,
+                        ...typography.caption,
+                        fontWeight: '600',
+                    }}>{displayName}</Text>
+                </View>
+            </View>
             <PickEditorModal
                 visible={pickEditorVisible}
                 onClose={() => setPickEditorVisible(false)}

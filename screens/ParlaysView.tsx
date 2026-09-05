@@ -9,6 +9,7 @@ import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import FontAwesome from "react-native-vector-icons/FontAwesome"
 import CreateParlayModal from "@/components/parlays/modals/CreateParlayModal"
+import { colors, shadows, spacing } from "@/theme/colors"
 
 export type ParlayTab = "Building" | "Open" | "Closed" | "My Lays"
 
@@ -28,7 +29,6 @@ export default function ParlaysView(props: Props) {
         loadNextParlays: loadNextBuildingParlays,
         canLoadMore: canLoadMoreBuilding,
         parlaysLoading: buildingLoading,
-        parlaysError: buildingError,
         refreshParlays: refreshBuildingParlays,
         refreshParlay: refreshBuildingParlay,
         parlayLoadingStates: buildingParlayLoadingStates,
@@ -46,7 +46,6 @@ export default function ParlaysView(props: Props) {
         loadNextParlays: loadNextOpenParlays,
         canLoadMore: canLoadMoreOpen,
         parlaysLoading: openLoading,
-        parlaysError: openError,
         refreshParlays: refreshOpenParlays,
         parlayLoadingStates: openParlayLoadingStates,
         refreshParlay: refreshOpenParlay,
@@ -63,7 +62,6 @@ export default function ParlaysView(props: Props) {
         loadNextParlays: loadNextClosedParlays,
         canLoadMore: canLoadMoreClosed,
         parlaysLoading: closedLoading,
-        parlaysError: closedError,
         refreshParlays: refreshClosedParlays,
         parlayLoadingStates: closedParlayLoadingStates,
         refreshParlay: refreshClosedParlay,
@@ -87,7 +85,6 @@ export default function ParlaysView(props: Props) {
                 loadMore={loadNextBuildingParlays}
                 canLoadMore={canLoadMoreBuilding}
                 loadingAll={buildingLoading}
-                error={buildingError}
                 editable={true}
                 loadingStates={buildingParlayLoadingStates}
             />
@@ -98,7 +95,6 @@ export default function ParlaysView(props: Props) {
                 loadMore={loadNextClosedParlays}
                 canLoadMore={canLoadMoreClosed}
                 loadingAll={closedLoading}
-                error={closedError}
                 editable={false}
                 loadingStates={closedParlayLoadingStates}
             />
@@ -109,7 +105,6 @@ export default function ParlaysView(props: Props) {
                 loadMore={loadNextOpenParlays}
                 canLoadMore={canLoadMoreOpen}
                 loadingAll={openLoading}
-                error={openError}
                 editable={false}
                 loadingStates={openParlayLoadingStates}
             />
@@ -120,7 +115,6 @@ export default function ParlaysView(props: Props) {
                 loadMore={loadNextOpenParlays}
                 canLoadMore={canLoadMoreOpen}
                 loadingAll={openLoading}
-                error={openError}
                 editable={false}
                 loadingStates={openParlayLoadingStates}
             />
@@ -180,7 +174,7 @@ export default function ParlaysView(props: Props) {
     }
 
     return (
-        <ParlaysProvider 
+        <ParlaysProvider
             refreshParlays={refreshAllParlays}
             refreshParlay={refreshParlay}
             navToTab={setActiveTab}
@@ -193,25 +187,44 @@ export default function ParlaysView(props: Props) {
             claimParlay={claimParlay}
         >
             <View style={styles.container}>
-            <View style={styles.topButtons}>
-                {activeTab === "Building" && (
-                    <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-                        <Ionicons name="add-circle" size={24} color="#007AFF" />
+            <View style={styles.headerRow}>
+                <View style={{ flex: 1 }}>
+                    <ParlayTabButtons<ParlayTab>
+                        tabs={["Building", "Open", "Closed", "My Lays"]}
+                        setActiveTab={setActiveTab}
+                        activeTab={activeTab}
+                        getDisplay={t => t === "My Lays" ? `${t} (${myLays().length})` : t}
+                        getKey={t => t}
+                        size="sm"
+                        colorProps={{
+                            backgroundColor: 'transparent',
+                            borderColor: '#b39ddb',
+                            textColor: '#b39ddb',
+                            activeBackgroundColor: '#b39ddb',
+                            activeBorderColor: '#b39ddb',
+                            activeTextColor: '#ffffff',
+                        }}
+                    />
+                </View>
+                <View style={styles.iconButtons}>
+                    <TouchableOpacity onPress={refreshAllParlays} style={styles.iconButton}>
+                        <FontAwesome name="refresh" size={20} color={colors.accent} />
                     </TouchableOpacity>
-                )}
-                <TouchableOpacity onPress={refreshAllParlays}>
-                    <FontAwesome name="refresh" size={20} color="#007AFF" />
-                </TouchableOpacity>
+                </View>
             </View>
-            <ParlayTabButtons<ParlayTab>
-                tabs={["Building", "Open", "Closed", "My Lays"]}
-                setActiveTab={setActiveTab}
-                activeTab={activeTab}
-                getDisplay={t => t === "My Lays" ? `${t} (${myLays().length})` : t}
-                getKey={t => t}
-                size="sm"
-            />
             {VisibleParlays()}
+            {/* Creating a parlay is the primary action on this tab, and it was crowding the
+                filters. It sits over the list instead. */}
+            {activeTab === "Building" && (
+                <TouchableOpacity
+                    onPress={() => setIsModalVisible(true)}
+                    style={styles.fab}
+                    activeOpacity={0.85}
+                    accessibilityLabel="Create a parlay"
+                >
+                    <Ionicons name="add" size={30} color={colors.textPrimary} />
+                </TouchableOpacity>
+            )}
             <CreateParlayModal
                 visible={isModalVisible}
                 onClose={() => setIsModalVisible(false)}
@@ -225,14 +238,31 @@ export default function ParlaysView(props: Props) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.background,
     },
-    topButtons: {
-        position: "absolute",
-        top: 8,
-        right: 12,
-        zIndex: 10,
+    headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 12,
+        paddingRight: spacing.md,
+    },
+    iconButtons: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.xs,
+    },
+    iconButton: {
+        padding: spacing.xs,
+    },
+    fab: {
+        position: "absolute",
+        right: spacing.lg,
+        bottom: spacing.xl,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.accent,
+        alignItems: "center",
+        justifyContent: "center",
+        ...shadows.card,
     },
 })

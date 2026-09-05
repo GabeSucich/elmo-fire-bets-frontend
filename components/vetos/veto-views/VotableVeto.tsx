@@ -5,9 +5,10 @@ import VetoProgress from "./VetoProgress";
 import ActionButton from "../../reusable/ActionButton";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import VetoPickDisplay from "./VetoPickDisplay";
-import { useErrorLoadingStates } from "@/composables/useErrorLoadingStates";
+import { useLoadingState } from "@/composables/useLoadingState";
 import useApiActionState from "@/composables/useApiActionState";
 import OverlayLoader from "../../reusable/OverlayLoader";
+import { colors, typography, spacing } from "@/theme/colors";
 
 type Props = {
     pick: PickResponseData
@@ -24,8 +25,8 @@ export default function VotableVeto(props: Props) {
     const status = veto.approval_status
 
     const {
-        error, loading, setError, setLoading
-    } = useErrorLoadingStates()
+        loading, setLoading
+    } = useLoadingState()
 
     const { gamblerId } = useGamblingSeasonContext()
 
@@ -34,7 +35,7 @@ export default function VotableVeto(props: Props) {
 
     const myVoteIsAffirmative = veto.votes.some(v => v.gambler_id === gamblerId && v.affirmative)
     const myVoteIsNegative = veto.votes.some(v => v.gambler_id === gamblerId && !v.affirmative)
-    
+
     const {
         execute: submitVote
     } = useApiActionState(
@@ -44,7 +45,6 @@ export default function VotableVeto(props: Props) {
         }),
         res => props.onSubmitVote(),
         setLoading,
-        setError,
         "There was an error submitting your vote"
     )
 
@@ -54,8 +54,8 @@ export default function VotableVeto(props: Props) {
 
     if (status === VetoApprovalStatus.UNDECIDED) {
         return (
-            <View style={{ padding: 12 }}>
-                <Text style={{ fontSize: 14, color: '#333', textAlign: 'center' }}>
+            <View style={{ padding: spacing.md }}>
+                <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center' }}>
                     The parlay was locked before a decision could be made on this veto. It will not take effect on the parlay.
                 </Text>
             </View>
@@ -64,7 +64,7 @@ export default function VotableVeto(props: Props) {
 
     if (status === VetoApprovalStatus.PENDING) {
         return (
-            <View style={{ padding: 12 }}>
+            <View style={{ padding: spacing.md }}>
                 {loading && <OverlayLoader />}
                 <VetoPickDisplay veto={veto} pick={pick} vetoeeName={vetoeeName} vetoerName={vetoerName}/>
                 <VetoProgress
@@ -73,25 +73,44 @@ export default function VotableVeto(props: Props) {
                 {
                     !isMyPick && !isMyVeto && (
                         <View>
-                            <Text style={{ fontSize: 12, color: '#333', textAlign: 'center', marginTop: 12, fontWeight: 'bold', fontStyle: 'italic' }}>
+                            <Text style={{
+                                ...typography.caption,
+                                color: colors.textSecondary,
+                                textAlign: 'center',
+                                marginTop: spacing.md,
+                                fontWeight: 'bold',
+                                fontStyle: 'italic',
+                            }}>
                                 Once you submit a vote, you may change it, but you cannot remove your vote altogether.
                             </Text>
                             {remainingAffirmativeVotesNeeded === 1 && !myVoteIsAffirmative && (
-                                <Text style={{ fontSize: 13, color: '#16a34a', textAlign: 'center', marginTop: 12, fontWeight: 'bold' }}>
+                                <Text style={{
+                                    ...typography.caption,
+                                    color: colors.success,
+                                    textAlign: 'center',
+                                    marginTop: spacing.md,
+                                    fontWeight: 'bold',
+                                }}>
                                     If you vote to approve this veto, it will permanently take effect!
                                 </Text>
                             )}
                             {remainingNonAffirmativeVotesNeeded === 1 && !myVoteIsNegative && (
-                                <Text style={{ fontSize: 13, color: '#dc2626', textAlign: 'center', marginTop: 12, fontWeight: 'bold' }}>
+                                <Text style={{
+                                    ...typography.caption,
+                                    color: colors.danger,
+                                    textAlign: 'center',
+                                    marginTop: spacing.md,
+                                    fontWeight: 'bold',
+                                }}>
                                     If you vote to reject this veto, it will permanently take effect!
                                 </Text>
                             )}
-                            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 16 }}>
-                                <ActionButton text="Reject" onPress={() => submitVote(false)} disabled={myVoteIsNegative} color="#dc2626" />
-                                <ActionButton text="Approve" onPress={() => submitVote(true)} disabled={myVoteIsAffirmative} color="#16a34a" />
+                            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md, marginTop: spacing.lg }}>
+                                <ActionButton text="Reject" onPress={() => submitVote(false)} disabled={myVoteIsNegative} color={colors.danger} />
+                                <ActionButton text="Approve" onPress={() => submitVote(true)} disabled={myVoteIsAffirmative} color={colors.success} />
                             </View>
                         </View>
-                        
+
                     )
                 }
             </View>
