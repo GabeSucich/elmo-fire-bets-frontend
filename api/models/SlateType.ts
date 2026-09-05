@@ -5,6 +5,7 @@
 export enum SlateType {
     TNF = 'TNF',
     FNF = 'FNF',
+    WNF = 'WNF',
     MORNING_SLATE = 'Morning slate',
     AFTERNOON_SLATE = 'Afternoon slate',
     TD = 'TD',

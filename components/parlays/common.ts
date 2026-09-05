@@ -10,6 +10,7 @@ export type ParlayEditArgs = {
 const SLATE_TYPE_NAMES: Record<SlateType, string> = {
     [SlateType.TNF]: "Thursday Night Football",
     [SlateType.FNF]: "Friday Night Football",
+    [SlateType.WNF]: "Wednesday Night Football",
     [SlateType.SATURDAY]: "Saturday",
     [SlateType.MORNING_SLATE]: "Sunday Morning Slate",
     [SlateType.AFTERNOON_SLATE]: "Sunday Afternoon Slate",
