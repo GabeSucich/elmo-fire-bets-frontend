@@ -1,15 +1,14 @@
-import { GamblerPerformance, GamblingSeasonService } from "@/api";
+
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import Leaderboard from "@/components/leaderboard/Leaderboard";
 import TimeSeries from "@/components/time-series/TimeSeries";
 import Trends from "@/components/trends/Trends";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { colors } from "@/theme/colors";
-import { useToastContext } from "@/contexts/toastContext";
-import { setApiErrorMsg } from "@/util/error";
+import { usePerformancesContext } from "@/contexts/performancesContext";
 
 type Props = {
     seasonId: number
@@ -24,28 +23,7 @@ type AnalyticsTabsParamList = {
 const Tab = createMaterialTopTabNavigator<AnalyticsTabsParamList>()
 
 export default function AnalyticsView(props: Props) {
-    const { showToast } = useToastContext()
-    const [loading, setLoading] = useState(true)
-    const [performances, setPerformances] = useState<Record<string, GamblerPerformance> | null>(null)
-
-    function loadPerformances() {
-        setLoading(true)
-        GamblingSeasonService.getSeasonGamblerPerformances(props.seasonId)
-            .then(res => setPerformances(res.performances))
-            .catch(e => setApiErrorMsg(
-                e,
-                message => showToast(message, {
-                    sticky: true,
-                    action: { label: "Retry", onPress: loadPerformances }
-                }),
-                "There was an error loading performance data"
-            ))
-            .finally(() => setLoading(false))
-    }
-
-    useEffect(() => {
-        loadPerformances()
-    }, [])
+    const { performances, loading } = usePerformancesContext()
 
     if (loading) {
         return (

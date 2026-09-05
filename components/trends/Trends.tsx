@@ -5,97 +5,47 @@ import { Text, View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { colors, typography, spacing, shadows } from "@/theme/colors";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import TrendsInfoModal from "./TrendsInfoModal";
+import {
+    bestOf,
+    buildBanList,
+    buildOlTrusties,
+    LIST_SIZE,
+    MIN_TARGET_PICKS,
+    qualifying,
+    Summary,
+    toSummary,
+    worstOf,
+} from "@/util/trends";
 
 type Props = {
     performances: Record<string, GamblerPerformance>
 }
 
-/**
- * Minimum sample before a player or prop can appear in a trend list, counted in
- * DECIDED picks — pushes and voids are excluded from win rate, so letting them
- * count toward the threshold admits entries like "100% on 1 decided pick".
- *
- * Sized against a full season: at 3 decided picks each gambler has 5-13 qualifying
- * players, and at 5 decided picks 4-6 qualifying props. TD slates carry far fewer
- * picks per player, so they use a lower bar.
- */
-const MIN_TARGET_PICKS = 3
 const MIN_PROP_PICKS = 5
-const MIN_TD_TARGET_PICKS = 2
+/** TD slate lists rank by how many picks actually landed or missed, not by rate. */
+const MIN_TD_WINS = 2
+const MIN_TD_LOSSES = 2
 
-/**
- * "Most picked" is a count, not a rate, so pushes and voids still count as picks
- * here, and the floor is lower than the rate lists need. Without any floor the list
- * fills from week one with players picked exactly once, which reads as a trend but
- * isn't; at 3 it stays empty until roughly the halfway mark. 2 drops the one-offs
- * while still giving the section something to show by midseason.
- */
-const MIN_TRUSTY_PICKS = 2
+/** Shared across every section — the info modal carries the per-section thresholds. */
+const EMPTY_TEXT = "Not enough data"
 
-const LIST_SIZE = 3
-
-type Summary = {
-    key: string
-    name: string
-    total: number
-    decided: number
-    winRate: number
-}
-
-/** Pushes and voids are not counted in win_rate, so they don't count as sample either. */
-function decidedPicks(metrics: SetMetrics) {
-    return metrics.total - metrics.pushes - metrics.voids
-}
-
-function toSummary(key: string, name: string, metrics: SetMetrics): Summary | null {
-    if (metrics.win_rate === null) {
-        return null
-    }
-    return {
-        key,
-        name,
-        total: metrics.total,
-        decided: decidedPicks(metrics),
-        winRate: metrics.win_rate,
-    }
-}
-
-function qualifying(summaries: (Summary | null)[], minPicks: number): Summary[] {
-    return summaries.filter((s): s is Summary => s !== null && s.decided >= minPicks)
-}
-
-/**
- * Best and worst are split on the 50% line rather than taken from opposite ends of
- * one sorted list. Two things fall out of that: an entry can never appear in both
- * lists (a win rate is not both above and below 50), and a "best" list can never
- * fill itself with losing records when there are fewer than six qualifying entries.
- * Entries sitting exactly at 50% are neither, so they show up in neither list.
- */
-function bestOf(summaries: Summary[]) {
+function mostWins(summaries: (Summary | null)[], minWins: number) {
     return summaries
-        .filter(s => s.winRate > 50)
-        .sort((a, b) => b.winRate - a.winRate || b.decided - a.decided)
+        .filter((s): s is Summary => s !== null && s.wins >= minWins)
+        .sort((a, b) => b.wins - a.wins || a.losses - b.losses)
         .slice(0, LIST_SIZE)
 }
 
-function worstOf(summaries: Summary[]) {
+function mostLosses(summaries: (Summary | null)[], minLosses: number) {
     return summaries
-        .filter(s => s.winRate < 50)
-        .sort((a, b) => a.winRate - b.winRate || b.decided - a.decided)
-        .slice(0, LIST_SIZE)
-}
-
-function mostPicked(summaries: (Summary | null)[], minPicks: number) {
-    return summaries
-        .filter((s): s is Summary => s !== null && s.total >= minPicks)
-        .sort((a, b) => b.total - a.total || b.winRate - a.winRate)
+        .filter((s): s is Summary => s !== null && s.losses >= minLosses)
+        .sort((a, b) => b.losses - a.losses || a.wins - b.wins)
         .slice(0, LIST_SIZE)
 }
 
 type GamblerTrends = {
     gamblerId: number
     gamblerName: string
-    sharpCalls: Summary[]
     olTrusties: Summary[]
     banList: Summary[]
 }
@@ -111,7 +61,8 @@ type GamblerTDTrends = {
     gamblerId: number
     gamblerName: string
     record: SetMetrics
-    goToGuys: Summary[]
+    cashedIn: Summary[]
+    burnedBy: Summary[]
 }
 
 /** Player trends exclude TD slates: they get their own section. */
@@ -120,19 +71,11 @@ function buildGamblerTrends(
     gamblerName: string,
     performance: GamblerPerformance
 ): GamblerTrends {
-    const { prop_targets, target_names } = performance.metrics.non_TD_slate
-
-    const summaries = Object.entries(prop_targets).map(([targetId, metrics]) =>
-        toSummary(targetId, target_names[targetId] ?? `Target ${targetId}`, metrics))
-
-    const withRate = qualifying(summaries, MIN_TARGET_PICKS)
-
     return {
         gamblerId,
         gamblerName,
-        sharpCalls: bestOf(withRate),
-        olTrusties: mostPicked(summaries, MIN_TRUSTY_PICKS),
-        banList: worstOf(withRate),
+        olTrusties: buildOlTrusties(performance),
+        banList: buildBanList(performance),
     }
 }
 
@@ -161,8 +104,8 @@ function buildGamblerPropTrends(
  * players recur, so mixing them into the general lists both distorts those lists
  * and buries how someone actually does on TD nights.
  *
- * Only the record and the most-picked players are shown. Per-target win rates on
- * TD slates run on 2-4 picks a season, which is noise, not a trend.
+ * Per-target win rates are noise here — a season gives each player 2-4 TD picks — so
+ * the lists rank by how many picks actually hit or missed rather than by rate.
  */
 function buildGamblerTDTrends(
     gamblerId: number,
@@ -178,15 +121,16 @@ function buildGamblerTDTrends(
         gamblerId,
         gamblerName,
         record: overall,
-        goToGuys: mostPicked(summaries, MIN_TD_TARGET_PICKS),
+        cashedIn: mostWins(summaries, MIN_TD_WINS),
+        burnedBy: mostLosses(summaries, MIN_TD_LOSSES),
     }
 }
 
 type Mode = "player" | "prop" | "td"
 
 const MODES: { key: Mode, label: string }[] = [
-    { key: "player", label: "Players" },
     { key: "prop", label: "Props" },
+    { key: "player", label: "Players" },
     { key: "td", label: "TDs" },
 ]
 
@@ -205,7 +149,7 @@ function buildAll<T>(
 }
 
 export default function Trends(props: Props) {
-    const [mode, setMode] = useState<Mode>("player")
+    const [mode, setMode] = useState<Mode>("prop")
     const [infoVisible, setInfoVisible] = useState(false)
     const { gamblerId, sortedGamblers } = useGamblingSeasonContext()
 
@@ -233,36 +177,36 @@ export default function Trends(props: Props) {
 
     return (
         <View style={styles.container}>
-            <View style={styles.toggleRow}>
-                {MODES.map(m => (
-                    <Pressable
-                        key={m.key}
-                        style={[styles.toggleButton, mode === m.key && styles.toggleActive]}
-                        onPress={() => setMode(m.key)}
-                    >
-                        <Text style={[styles.toggleText, mode === m.key && styles.toggleTextActive]}>{m.label}</Text>
-                    </Pressable>
-                ))}
-            </View>
+            <View style={styles.header}>
+                <View style={styles.toggleRow}>
+                    {MODES.map(m => (
+                        <Pressable
+                            key={m.key}
+                            style={[styles.toggleButton, mode === m.key && styles.toggleActive]}
+                            onPress={() => setMode(m.key)}
+                        >
+                            <Text style={[styles.toggleText, mode === m.key && styles.toggleTextActive]}>{m.label}</Text>
+                        </Pressable>
+                    ))}
+                </View>
 
-            <Pressable
-                style={styles.infoRow}
-                onPress={() => setInfoVisible(true)}
-                accessibilityRole="button"
-                accessibilityLabel="How are trends calculated"
-                hitSlop={spacing.sm}
-            >
-                <Text style={styles.infoLabel}>How are trends calculated?</Text>
-                <MaterialCommunityIcons name="information-outline" size={16} color={colors.textSecondary} />
-            </Pressable>
+                <Pressable
+                    onPress={() => setInfoVisible(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="How are trends calculated"
+                    hitSlop={spacing.md}
+                >
+                    <MaterialCommunityIcons name="information-outline" size={22} color={colors.textSecondary} />
+                </Pressable>
+            </View>
 
             <TrendsInfoModal
                 visible={infoVisible}
                 onClose={() => setInfoVisible(false)}
                 minTargetPicks={MIN_TARGET_PICKS}
-                minTrustyPicks={MIN_TRUSTY_PICKS}
                 minPropPicks={MIN_PROP_PICKS}
-                minTDTargetPicks={MIN_TD_TARGET_PICKS}
+                minTDWins={MIN_TD_WINS}
+                minTDLosses={MIN_TD_LOSSES}
             />
 
             <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
@@ -272,18 +216,8 @@ export default function Trends(props: Props) {
                             <View key={trend.gamblerId} style={styles.card}>
                                 <Text style={styles.gamblerName}>{trend.gamblerName}</Text>
 
-                                <TrendSection
-                                    title="Sharp Calls" emoji={"🎯"} items={trend.sharpCalls} showRate showTotal
-                                    emptyText={`No player is above 50% on ${MIN_TARGET_PICKS}+ settled picks yet.`}
-                                />
-                                <TrendSection
-                                    title="Ol' Trusties" emoji={"🤝"} items={trend.olTrusties} showTotal
-                                    emptyText={`Nobody has been picked ${MIN_TRUSTY_PICKS}+ times yet.`}
-                                />
-                                <TrendSection
-                                    title="Ban List" emoji={"🚫"} items={trend.banList} showRate showTotal
-                                    emptyText={`No player is below 50% on ${MIN_TARGET_PICKS}+ settled picks yet.`}
-                                />
+                                <TrendSection title="Ol' Trusties" emoji={"🤝"} items={trend.olTrusties} showRate showTotal />
+                                <TrendSection title="Ban List" emoji={"🚫"} items={trend.banList} showRate showTotal />
                             </View>
                         ))}
                     </>
@@ -295,14 +229,8 @@ export default function Trends(props: Props) {
                             <View key={trend.gamblerId} style={styles.card}>
                                 <Text style={styles.gamblerName}>{trend.gamblerName}</Text>
 
-                                <TrendSection
-                                    title="Can't Miss" emoji={"🎯"} items={trend.sharpCalls} showRate showTotal
-                                    emptyText={`No prop type is above 50% on ${MIN_PROP_PICKS}+ settled picks yet.`}
-                                />
-                                <TrendSection
-                                    title="Love the Pain" emoji={"😈"} items={trend.loveThePain} showRate showTotal
-                                    emptyText={`No prop type is below 50% on ${MIN_PROP_PICKS}+ settled picks yet.`}
-                                />
+                                <TrendSection title="Can't Miss" emoji={"🎯"} items={trend.sharpCalls} showRate showTotal />
+                                <TrendSection title="Love the Pain" emoji={"😈"} items={trend.loveThePain} showRate showTotal />
                             </View>
                         ))}
                     </>
@@ -317,10 +245,8 @@ export default function Trends(props: Props) {
                                     <TDRecord record={trend.record} />
                                 </View>
 
-                                <TrendSection
-                                    title="Go-To Guys" emoji={"🎪"} items={trend.goToGuys} showRate showTotal
-                                    emptyText={`Nobody has been picked ${MIN_TD_TARGET_PICKS}+ times on a TD slate yet.`}
-                                />
+                                <TrendSection title="Cashed In" emoji={"🤑"} items={trend.cashedIn} showCount="wins" />
+                                <TrendSection title="Burned By" emoji={"💀"} items={trend.burnedBy} showCount="losses" />
                             </View>
                         ))}
                     </>
@@ -348,18 +274,18 @@ type TrendSectionProps = {
     title: string
     emoji: string
     items: Summary[]
-    /** Says what this section is still waiting for, rather than just that it's waiting. */
-    emptyText: string
     showRate?: boolean
     showTotal?: boolean
+    /** Renders the raw win or loss count that the list is ranked on. */
+    showCount?: "wins" | "losses"
 }
 
-function TrendSection({ title, emoji, items, emptyText, showRate, showTotal }: TrendSectionProps) {
+function TrendSection({ title, emoji, items, showRate, showTotal, showCount }: TrendSectionProps) {
     return (
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>{emoji} {title}</Text>
             {items.length === 0 && (
-                <Text style={styles.fillerText}>{emptyText}</Text>
+                <Text style={styles.fillerText}>{EMPTY_TEXT}</Text>
             )}
             {items.map((item, i) => (
                 <View key={item.key} style={styles.targetRow}>
@@ -373,6 +299,11 @@ function TrendSection({ title, emoji, items, emptyText, showRate, showTotal }: T
                     {showTotal && (
                         <Text style={styles.targetStat}>{item.total} picks</Text>
                     )}
+                    {showCount && (
+                        <Text style={styles.targetStat}>
+                            {showCount === "wins" ? item.wins : item.losses} {showCount}
+                        </Text>
+                    )}
                 </View>
             ))}
         </View>
@@ -384,25 +315,19 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    toggleRow: {
+    header: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "space-between",
         gap: spacing.sm,
         paddingVertical: spacing.md,
         paddingHorizontal: spacing.lg,
     },
-    infoRow: {
+    toggleRow: {
         flexDirection: "row",
         alignItems: "center",
-        alignSelf: "flex-end",
-        gap: spacing.xs,
-        paddingHorizontal: spacing.lg,
-        paddingBottom: spacing.sm,
-    },
-    infoLabel: {
-        ...typography.caption,
-        color: colors.textSecondary,
+        gap: spacing.sm,
+        flexShrink: 1,
     },
     toggleButton: {
         paddingVertical: spacing.sm,

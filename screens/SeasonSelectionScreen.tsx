@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,18 @@ import { GamblerSeason, useListSeasons } from "@/composables/useListSeasons";
 import { MainStackParamList } from "@/Main";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
 import { colors, shadows, typography, spacing } from "@/theme/colors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const LAST_SEASON_KEY = "lastSeasonId"
+
+/**
+ * Whether this launch has already jumped straight into a season.
+ *
+ * Module scope rather than state, so it survives the screen being remounted. Without it,
+ * navigating back to the season list would immediately bounce you into the season again
+ * and there would be no way to reach the list at all.
+ */
+let hasAutoOpenedSeason = false
 
 type NavigationProp = NativeStackNavigationProp<MainStackParamList, "SeasonSelector">
 type SeasonSelectionRouteProp = RouteProp<MainStackParamList, "SeasonSelector">
@@ -24,8 +36,27 @@ export function SeasonSelectionScreen() {
   const { gamblerSeasons, loading } = useListSeasons()
 
   function setGamblerSeason(season: GamblerSeason) {
+    hasAutoOpenedSeason = true
+    AsyncStorage.setItem(LAST_SEASON_KEY, String(season.seasonId)).catch(() => {})
     navigation.navigate("Season", { season })
   }
+
+  useEffect(() => {
+    if (hasAutoOpenedSeason || loading || gamblerSeasons.length === 0) return
+
+    let cancelled = false
+    AsyncStorage.getItem(LAST_SEASON_KEY).then(storedId => {
+      if (cancelled || !storedId) return
+      // A season the user no longer has — a different account, or one that went away —
+      // simply falls through to the list.
+      const season = gamblerSeasons.find(s => String(s.seasonId) === storedId)
+      if (!season) return
+      hasAutoOpenedSeason = true
+      navigation.navigate("Season", { season })
+    }).catch(() => {})
+
+    return () => { cancelled = true }
+  }, [loading, gamblerSeasons])
 
   if (loading) {
     return (

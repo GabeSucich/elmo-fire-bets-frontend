@@ -28,8 +28,10 @@ export default function LoginScreen() {
     const storedPassword = (await AsyncStorage.getItem("password")) || ""
     setPassword(storedPassword)
     setUsername(storedUsername)
-    if (storedUsername && storedPassword) {
-      // attemptLogin(storedUsername, storedPassword)
+    // Dev builds stop at the login screen so it can actually be reached — to test the form,
+    // or to sign in as someone else. The fields are still pre-filled, so it is one tap.
+    if (!__DEV__ && storedUsername && storedPassword) {
+      attemptLogin(storedUsername, storedPassword)
     }
   }
 

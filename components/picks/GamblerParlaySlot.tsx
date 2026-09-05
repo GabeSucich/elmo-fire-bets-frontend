@@ -15,6 +15,9 @@ import EntotypeIcon from 'react-native-vector-icons/Entypo'
 import FeatherIcon from 'react-native-vector-icons/Feather'
 import { colors, typography, spacing } from "@/theme/colors"
 import { PickDisplayUtil } from "@/util/picks"
+import { usePerformancesContext } from "@/contexts/performancesContext"
+import { findBanListEntry } from "@/util/trends"
+import BanListAlert from "./BanListAlert"
 
 
 type Props = {
@@ -62,6 +65,8 @@ export default function GamblerParlaySlot(props: Props) {
     const {
         refreshParlay
     } = useParlaysContext()
+
+    const { performanceFor } = usePerformancesContext()
 
     const parlayId = props.parlay.id
 
@@ -156,6 +161,12 @@ export default function GamblerParlaySlot(props: Props) {
     }
 
     const vetoedExtraInfo = props.pick ? getVetoedExtraInfo(props.pick) : null
+
+    // Only while the parlay is still being built — once it is locked in, the warning is
+    // just noise about a decision nobody can change.
+    const banListPlacement = isBuilding && props.pick
+        ? findBanListEntry(performanceFor(props.gambler.id), props.pick.prop_bet_target.id)
+        : null
 
     return (
         <View style={{ paddingVertical: spacing.xs }}>
@@ -277,6 +288,13 @@ export default function GamblerParlaySlot(props: Props) {
                     }}>{displayName}</Text>
                 </View>
             </View>
+            {banListPlacement && (
+                <BanListAlert
+                    gamblerName={displayName}
+                    placement={banListPlacement}
+                    isOwnPick={isMyGambler}
+                />
+            )}
             <PickEditorModal
                 visible={pickEditorVisible}
                 onClose={() => setPickEditorVisible(false)}

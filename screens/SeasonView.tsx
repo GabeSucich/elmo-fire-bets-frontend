@@ -8,6 +8,7 @@ import { MainStackParamList } from "@/Main";
 import ParlaysView from "./ParlaysView";
 import { ActivityIndicator, View } from "react-native";
 import { GamblingSeasonProvider } from "@/contexts/gamblingSeasonContext";
+import { PerformancesProvider } from "@/contexts/performancesContext";
 import AnalyticsView from "./AnalyticsView";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
 import useApiActionState from "@/composables/useApiActionState";
@@ -62,6 +63,7 @@ export default function SeasonView() {
 
     return (
         <GamblingSeasonProvider gamblingSeason={gamblingSeason}>
+            <PerformancesProvider seasonId={seasonId}>
             <Tab.Navigator
                 screenOptions={{
                     tabBarStyle: {
@@ -89,6 +91,7 @@ export default function SeasonView() {
                     {() => <AnalyticsView seasonId={seasonId}/>}
                 </Tab.Screen>
             </Tab.Navigator>
+            </PerformancesProvider>
         </GamblingSeasonProvider>
     )
 }
