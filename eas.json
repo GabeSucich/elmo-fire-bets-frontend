@@ -13,5 +13,13 @@
         "EXPO_PUBLIC_API_URL": "https://uvicorn-main-production-aec8.up.railway.app"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6759312764",
+        "appleTeamId": "DG7VFR45RP"
+      }
+    }
   }
 }
