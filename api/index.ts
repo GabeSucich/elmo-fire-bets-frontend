@@ -69,6 +69,7 @@ export type { ReopenParlayResponseData } from './models/ReopenParlayResponseData
 export { SauceFactor } from './models/SauceFactor';
 export type { SauceFactorMetrics } from './models/SauceFactorMetrics';
 export type { ScoreCorrection } from './models/ScoreCorrection';
+export type { ScoredMetrics } from './models/ScoredMetrics';
 export type { SetMetrics } from './models/SetMetrics';
 export type { SetVetoMetrics } from './models/SetVetoMetrics';
 export type { SlateFilteredMetrics } from './models/SlateFilteredMetrics';
