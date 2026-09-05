@@ -14,7 +14,7 @@ import CorrectionReviewRow from "./CorrectionReviewRow"
 type Props = {
     analysis: CorrectionImageAnalysis
     onCorrectionsApplied: (picks: PickResponseData[]) => void
-    onEditFully: (pickId: number) => void
+    onEditFully: (gamblerId: number) => void
     /** Leaves the corrections view entirely, refreshing the parlay behind it. */
     onDone: () => void
     onCorrectManually: () => void
@@ -25,35 +25,53 @@ export default function ImageCorrectionFlow(props: Props) {
     const { loading, setLoading } = useLoadingState()
 
     const {
-        phase, legs, statedLegCount, rows, analyze, updateRow, dropRows, reset,
+        parlayId, phase, legs, statedLegCount, rows, analyze, updateRow, dropRows, reset,
     } = props.analysis
 
-    function hasUsableValue(row: ReviewRowState) {
-        return !Number.isNaN(parseFloat(row.value))
+    /** A row is ready when it will write something: a number, or a pick that does not exist yet. */
+    function isReady(row: ReviewRowState) {
+        if (!row.pick) return row.edit !== null
+        return row.edit !== null || !Number.isNaN(parseFloat(row.value))
+    }
+
+    function submitRow(row: ReviewRowState) {
+        // A gambler with no recorded pick gets one created, already corrected.
+        if (!row.pick) {
+            const edit = row.edit!
+            return PicksService.createPick({
+                gambler_id: row.gamblerId,
+                parlay_id: parlayId,
+                target: playerTeamResultToRequestData(edit.playerTeamResult),
+                prop_type: edit.propType,
+                direction: edit.direction,
+                sauce_factor: edit.sauceFactor,
+                line: edit.line,
+                corrected_line: edit.line,
+            })
+        }
+        const line = parseFloat(row.value)
+        // A row edited by hand carries the whole pick; everything else moves only its number.
+        return row.edit
+            ? PicksService.applyPickOverride(row.pick.id, {
+                target: playerTeamResultToRequestData(row.edit.playerTeamResult),
+                prop_type: row.edit.propType,
+                direction: row.edit.direction,
+                sauce_factor: row.edit.sauceFactor,
+                delete_veto: row.edit.deleteVeto,
+                line,
+            })
+            : PicksService.applyPickOverride(row.pick.id, { line })
     }
 
     // Every row is submitted, including ones the slip had nothing to say about — applying a
     // pick's existing line is what marks it as already correct, and it leaves the parlay with
     // no uncorrected picks, which is what finalizing needs.
     async function applyCorrections() {
-        const toApply = rows.filter(hasUsableValue)
+        const toApply = rows.filter(isReady)
         if (toApply.length === 0 || toApply.length !== rows.length) return
 
         setLoading(true)
-        const outcomes = await Promise.allSettled(toApply.map(row => {
-            const line = parseFloat(row.value)
-            // A row edited by hand carries the whole pick; everything else moves only its number.
-            return row.edit
-                ? PicksService.applyPickOverride(row.pick.id, {
-                    target: playerTeamResultToRequestData(row.edit.playerTeamResult),
-                    prop_type: row.edit.propType,
-                    direction: row.edit.direction,
-                    sauce_factor: row.edit.sauceFactor,
-                    delete_veto: row.edit.deleteVeto,
-                    line,
-                })
-                : PicksService.applyPickOverride(row.pick.id, { line })
-        }))
+        const outcomes = await Promise.allSettled(toApply.map(submitRow))
         setLoading(false)
 
         const applied: PickResponseData[] = []
@@ -71,7 +89,7 @@ export default function ImageCorrectionFlow(props: Props) {
 
         if (failedNames.length > 0) {
             // Successes stay applied; only the failures are left on screen to retry.
-            dropRows(applied.map(pick => pick.id))
+            dropRows(applied.map(pick => pick.gambler_id))
             showToast(`Could not save corrections for ${failedNames.join(', ')}`)
             return
         }
@@ -113,8 +131,10 @@ export default function ImageCorrectionFlow(props: Props) {
     const matchedCount = rows.filter(row => row.leg).length
     const legsMissing = statedLegCount != null && statedLegCount > legs.length
 
-    const unusable = rows.filter(row => !hasUsableValue(row))
-    const canApply = rows.length > 0 && unusable.length === 0
+    const notReady = rows.filter(row => !isReady(row))
+    const missingPicks = notReady.filter(row => !row.pick)
+    const badNumbers = notReady.filter(row => row.pick)
+    const canApply = rows.length > 0 && notReady.length === 0
 
     // Lines that were read off the slip but claimed by nobody. Showing them turns an
     // unexplained "no match" into something diagnosable — usually the bet type was read
@@ -157,18 +177,25 @@ export default function ImageCorrectionFlow(props: Props) {
             <ScrollView style={{ maxHeight: 400 }} contentContainerStyle={{ gap: spacing.sm }}>
                 {rows.map(row => (
                     <CorrectionReviewRow
-                        key={row.pick.id}
+                        key={row.gamblerId}
                         row={row}
-                        onChangeValue={value => updateRow(row.pick.id, { value })}
-                        onEditFully={() => props.onEditFully(row.pick.id)}
+                        onChangeValue={value => updateRow(row.gamblerId, { value })}
+                        onEditFully={() => props.onEditFully(row.gamblerId)}
                     />
                 ))}
             </ScrollView>
 
-            {unusable.length > 0 && (
+            {missingPicks.length > 0 && (
+                <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
+                    {missingPicks.map(row => row.gamblerName).join(', ')}
+                    {missingPicks.length === 1 ? ' has' : ' have'} no pick. Use "Add pick" before applying.
+                </Text>
+            )}
+
+            {badNumbers.length > 0 && (
                 <Text style={{ ...typography.caption, color: colors.danger, fontWeight: '600' }}>
-                    {unusable.map(row => row.gamblerName).join(', ')}
-                    {unusable.length === 1 ? ' needs' : ' need'} a number before this can be applied.
+                    {badNumbers.map(row => row.gamblerName).join(', ')}
+                    {badNumbers.length === 1 ? ' needs' : ' need'} a number before this can be applied.
                 </Text>
             )}
 

@@ -53,7 +53,7 @@ export default function ParlayPickCorrections(props: Props) {
     const [mode, setMode] = useState<CorrectionMode>('image')
 
     // The row being edited in full during an image review. Its edit is staged, not saved.
-    const [editingPickId, setEditingPickId] = useState<number | null>(null)
+    const [editingGamblerId, setEditingGamblerId] = useState<number | null>(null)
 
     // Owned here, not inside ImageCorrectionFlow, so that stepping out to correct one pick
     // by hand does not discard the analysis or the edits made to the other rows.
@@ -66,7 +66,7 @@ export default function ParlayPickCorrections(props: Props) {
         ])
 
         // This pick has been handled by hand; its suggestion is stale now.
-        analysis.dropRows([pick.id])
+        analysis.dropRows([pick.gambler_id])
 
         const gamblerIndex = Math.max(sortedGamblers.map(g => g.id).indexOf(pick.gambler_id))
         const nextGambler = getNextGamblerToFocus(gamblerIndex + 1)
@@ -81,25 +81,25 @@ export default function ParlayPickCorrections(props: Props) {
         ])
     }
 
-    function handleEditFully(pickId: number) {
-        setEditingPickId(pickId)
+    function handleEditFully(gamblerId: number) {
+        setEditingGamblerId(gamblerId)
         setMode('staged-edit')
     }
 
     /** Hold the edit against the row; it is written with everything else on submit. */
-    function handleStagedEdit(pickId: number, data: PickCreateEditData) {
-        analysis.updateRow(pickId, { edit: data, value: data.line.toString() })
-        setEditingPickId(null)
+    function handleStagedEdit(gamblerId: number, data: PickCreateEditData) {
+        analysis.updateRow(gamblerId, { edit: data, value: data.line.toString() })
+        setEditingGamblerId(null)
         setMode('image')
     }
 
     function returnToReview() {
-        setEditingPickId(null)
+        setEditingGamblerId(null)
         setMode('image')
     }
 
     function toggleMode() {
-        setEditingPickId(null)
+        setEditingGamblerId(null)
         setMode(mode === 'image' ? 'manual' : 'image')
     }
 
@@ -116,7 +116,7 @@ export default function ParlayPickCorrections(props: Props) {
     }
 
     const correctionText = needsCorrectionText()
-    const editingRow = analysis.rows.find(row => row.pick.id === editingPickId) ?? null
+    const editingRow = analysis.rows.find(row => row.gamblerId === editingGamblerId) ?? null
 
     return (
         <View>
@@ -152,7 +152,7 @@ export default function ParlayPickCorrections(props: Props) {
             {mode === 'staged-edit' && editingRow ? (
                 <StagedPickEditor
                     row={editingRow}
-                    onStage={data => handleStagedEdit(editingRow.pick.id, data)}
+                    onStage={data => handleStagedEdit(editingRow.gamblerId, data)}
                     onCancel={returnToReview}
                 />
             ) : mode === 'image' ? (

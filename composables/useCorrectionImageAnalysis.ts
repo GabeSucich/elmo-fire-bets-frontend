@@ -1,9 +1,9 @@
-import { CorrectionSuggestion, ExtractedLeg, ParlayResponseData, PickResponseData, CorrectionsService } from "@/api"
+import { CorrectionSuggestion, CorrectionsService, ExtractedLeg, ParlayResponseData, PickResponseData } from "@/api"
+import { PickCreateEditData } from "@/components/picks/common"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { useToastContext } from "@/contexts/toastContext"
 import { setApiErrorMsg } from "@/util/error"
 import { getPickLine } from "@/util/picks"
-import { PickCreateEditData } from "@/components/picks/common"
 import { File } from "expo-file-system"
 import * as ImagePicker from "expo-image-picker"
 import { useState } from "react"
@@ -14,17 +14,20 @@ const MAX_IMAGES = 6
 export type AnalysisPhase = 'idle' | 'extracting' | 'matching' | 'review'
 
 export type ReviewRowState = {
-    pick: PickResponseData
+    /** Rows are per gambler, not per pick — a gambler with no pick still needs one. */
+    gamblerId: number
     gamblerName: string
+    pick: PickResponseData | null
     leg: ExtractedLeg | null
     note: string | null
     directionMismatch: boolean
     looseTargetMatch: boolean
-    /** The number that will be written as this pick's correction. Always editable. */
+    /** The number that will be written as this pick's correction. Empty when there is no pick. */
     value: string
     /**
-     * A full edit staged from "Edit fully" — target, bet type, direction, sauce. Held here
+     * A full edit staged from the pick editor — target, bet type, direction, sauce. Held here
      * rather than written straight away so the whole parlay is corrected in one submission.
+     * For a gambler with no pick this is the only way the row can be satisfied.
      */
     edit: PickCreateEditData | null
 }
@@ -34,10 +37,10 @@ export type ReviewRowState = {
  *
  * The two phases are two ordinary API calls rather than a streamed one, so the progress
  * the user sees is a real request boundary. Nothing here writes — the caller submits
- * every row through the normal pick override path.
+ * every row through the normal pick create/override paths.
  *
  * Review state lives here rather than in the component that renders it so that leaving
- * the flow — to correct one pick by hand, say — does not throw away the analysis or any
+ * the flow — to edit one pick in full, say — does not throw away the analysis or any
  * edits already made to the other rows.
  */
 export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
@@ -46,28 +49,30 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
     const [statedLegCount, setStatedLegCount] = useState<number | null>(null)
     const [rows, setRows] = useState<ReviewRowState[]>([])
 
-    const { gamblers } = useGamblingSeasonContext()
+    const { sortedGamblers } = useGamblingSeasonContext()
     const { showToast } = useToastContext()
 
     function buildRows(extractedLegs: ExtractedLeg[], suggestions: CorrectionSuggestion[]): ReviewRowState[] {
         const legsByIndex = new Map(extractedLegs.map(leg => [leg.leg_index, leg]))
 
-        return parlay.picks.map(pick => {
-            const suggestion = suggestions.find(s => s.pick_id === pick.id) ?? null
+        return sortedGamblers.map(gambler => {
+            const pick = parlay.picks.find(p => p.gambler_id === gambler.id) ?? null
+            const suggestion = pick ? suggestions.find(s => s.pick_id === pick.id) ?? null : null
             const leg = suggestion?.matched_leg_index != null
                 ? legsByIndex.get(suggestion.matched_leg_index) ?? null
                 : null
 
             return {
+                gamblerId: gambler.id,
+                gamblerName: gambler.firstName,
                 pick,
-                gamblerName: gamblers[pick.gambler_id]?.firstName ?? 'Unknown',
                 leg,
                 note: suggestion?.note ?? null,
                 directionMismatch: suggestion?.direction_mismatch ?? false,
                 looseTargetMatch: suggestion?.loose_target_match ?? false,
                 // Where the slip had nothing to say, the pick's own line stands. Submitting
                 // it unchanged is how a pick gets confirmed as already correct.
-                value: (suggestion?.suggested_number ?? getPickLine(pick)).toFixed(1),
+                value: pick ? (suggestion?.suggested_number ?? getPickLine(pick)).toFixed(1) : '',
                 edit: null,
             }
         })
@@ -107,13 +112,13 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
         }
     }
 
-    function updateRow(pickId: number, changes: Partial<ReviewRowState>) {
-        setRows(current => current.map(row => row.pick.id === pickId ? { ...row, ...changes } : row))
+    function updateRow(gamblerId: number, changes: Partial<ReviewRowState>) {
+        setRows(current => current.map(row => row.gamblerId === gamblerId ? { ...row, ...changes } : row))
     }
 
-    /** Drop rows whose picks have been dealt with elsewhere — applied, or corrected by hand. */
-    function dropRows(pickIds: number[]) {
-        setRows(current => current.filter(row => !pickIds.includes(row.pick.id)))
+    /** Drop rows whose gamblers have been dealt with elsewhere — applied, or corrected by hand. */
+    function dropRows(gamblerIds: number[]) {
+        setRows(current => current.filter(row => !gamblerIds.includes(row.gamblerId)))
     }
 
     function reset() {
@@ -124,6 +129,7 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
     }
 
     return {
+        parlayId: parlay.id,
         phase,
         legs,
         statedLegCount,

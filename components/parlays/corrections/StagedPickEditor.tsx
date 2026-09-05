@@ -19,8 +19,9 @@ type Props = {
  * everyone else's on submit, so a correction made this way can still be revised or abandoned.
  */
 export default function StagedPickEditor({ row, onStage, onCancel }: Props) {
-    // Reopening after an edit should show what was staged, not the stored pick.
-    const pick: PickResponseData = row.edit
+    // Reopening after an edit should show what was staged, not the stored pick. With no
+    // pick and nothing staged there is nothing to seed from, so the editor starts blank.
+    const pick: PickResponseData | null = row.edit && row.pick
         ? {
             ...row.pick,
             prop_type: row.edit.propType,
@@ -50,7 +51,7 @@ export default function StagedPickEditor({ row, onStage, onCancel }: Props) {
                 textAlign: 'center',
                 color: colors.textPrimary,
                 marginBottom: spacing.sm,
-            }}>Editing {row.gamblerName}'s pick</Text>
+            }}>{row.pick ? `Editing ${row.gamblerName}'s pick` : `Adding ${row.gamblerName}'s pick`}</Text>
             <PickEditor
                 pick={pick}
                 handleEdit={onStage}

@@ -11,28 +11,36 @@ type Props = {
 }
 
 /**
- * One pick's line as it will be submitted.
+ * One gambler's line as it will be submitted.
  *
- * Two shapes. Normally the row proposes a number against the stored line and lets it be
+ * Three shapes. Normally the row proposes a number against the stored line and lets it be
  * edited in place — including for picks the slip said nothing about, which arrive holding
  * their own line so that confirming them as already correct means submitting unchanged.
  * Once a pick has been overridden by hand the proposed-correction framing no longer
- * applies, so the row shows the override itself instead.
+ * applies, so the row shows the override itself. And a gambler with no pick at all has
+ * nothing to correct, so the row asks for one to be added.
  */
 export default function CorrectionReviewRow({ row, onChangeValue, onEditFully }: Props) {
     const { pick, leg, gamblerName, edit } = row
-    const stored = PickDisplayUtil.lineAndDirectionDisplay(pick, true)
+    const stored = pick ? PickDisplayUtil.lineAndDirectionDisplay(pick, true) : null
 
-    const targetDisplay = edit ? playerTeamDisplay(edit.playerTeamResult) : PickDisplayUtil.playerTeamDisplay(pick)
-    const propTypeDisplay = edit?.propType ?? pick.prop_type
-    const directionDisplay = edit?.direction ?? stored.directionDisplay
+    const targetDisplay = edit
+        ? playerTeamDisplay(edit.playerTeamResult)
+        : pick ? PickDisplayUtil.playerTeamDisplay(pick) : null
+    const propTypeDisplay = edit?.propType ?? pick?.prop_type ?? null
+    const directionDisplay = edit?.direction ?? stored?.directionDisplay
 
-    const invalid = !edit && Number.isNaN(parseFloat(row.value))
+    const missingPick = !pick && !edit
+    const invalid = !!pick && !edit && Number.isNaN(parseFloat(row.value))
+
+    const borderColor = invalid || missingPick
+        ? (missingPick ? colors.buttonSecondary : colors.danger)
+        : edit ? colors.accent : leg ? colors.cardBorder : colors.buttonSecondary
 
     return (
         <View style={{
             borderWidth: 1,
-            borderColor: invalid ? colors.danger : edit ? colors.accent : leg ? colors.cardBorder : colors.buttonSecondary,
+            borderColor,
             borderRadius: 8,
             padding: spacing.sm,
             gap: spacing.xs,
@@ -43,28 +51,34 @@ export default function CorrectionReviewRow({ row, onChangeValue, onEditFully }:
                 </Text>
                 <TouchableOpacity onPress={onEditFully}>
                     <Text style={{ ...typography.caption, color: colors.accent, fontWeight: '600' }}>
-                        Edit more
+                        {pick || edit ? "Edit more" : "Add pick"}
                     </Text>
                 </TouchableOpacity>
             </View>
 
-            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-                {targetDisplay} · {propTypeDisplay}
-            </Text>
+            {targetDisplay && (
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                    {targetDisplay} · {propTypeDisplay}
+                </Text>
+            )}
 
-            {edit ? (
+            {missingPick ? (
+                <Text style={{ ...typography.caption, color: colors.textSecondary, fontStyle: 'italic' }}>
+                    No pick was recorded for this parlay. Add one before applying.
+                </Text>
+            ) : edit ? (
                 <>
                     <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: '600' }}>
                         {directionDisplay} {row.value}
                     </Text>
                     <Text style={{ ...typography.caption, color: colors.accent, fontStyle: 'italic' }}>
-                        Manual override — saved with the rest on submit.
+                        {pick ? "Manual override" : "New pick"} — saved with the rest on submit.
                     </Text>
                 </>
             ) : (
                 <>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                        <Text style={{ ...typography.body, color: colors.textSecondary }}>{stored.lineDisplay}</Text>
+                        <Text style={{ ...typography.body, color: colors.textSecondary }}>{stored?.lineDisplay}</Text>
                         <Text style={{ color: colors.textSecondary }}>→</Text>
                         <Text style={{ ...typography.body, color: colors.textSecondary }}>{directionDisplay}</Text>
                         <TextInput
@@ -98,7 +112,7 @@ export default function CorrectionReviewRow({ row, onChangeValue, onEditFully }:
 
                     {row.looseTargetMatch && (
                         <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
-                            ⚠ The slip names {leg?.player_name ?? 'a player'} but this pick is on {pick.prop_bet_target.team_name}.
+                            ⚠ The slip names {leg?.player_name ?? 'a player'} but this pick is on {pick?.prop_bet_target.team_name}.
                         </Text>
                     )}
 
