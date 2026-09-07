@@ -1,5 +1,5 @@
 import { GamblerPerformance, SetMetrics } from "@/api";
-import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
+import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst";
 import React, { useMemo, useState } from "react";
 import { Text, View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { colors, typography, spacing, shadows } from "@/theme/colors";
@@ -151,17 +151,7 @@ function buildAll<T>(
 export default function Trends(props: Props) {
     const [mode, setMode] = useState<Mode>("prop")
     const [infoVisible, setInfoVisible] = useState(false)
-    const { gamblerId, sortedGamblers } = useGamblingSeasonContext()
-
-    // The signed-in gambler reads their own card first.
-    const meFirst = useMemo(
-        () => [...sortedGamblers].sort((a, b) => {
-            if (a.id === gamblerId) return -1
-            if (b.id === gamblerId) return 1
-            return 0
-        }),
-        [sortedGamblers, gamblerId]
-    )
+    const meFirst = useGamblersMeFirst()
 
     const performanceFor = useMemo(() => {
         const byGambler = new Map(Object.values(props.performances).map(p => [p.gambler_id, p]))

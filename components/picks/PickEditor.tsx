@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Switch, Text, TextInput, View } from "react-native";
 import SelectableTile from "../reusable/tiles/SelectableTile";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
+import NumericInput from "../reusable/NumericInput";
 import { PickCreateEditData } from "./common";
 import { getPickLine } from "@/util/picks";
 import { colors, typography, spacing, shadows } from "@/theme/colors";
@@ -220,12 +221,11 @@ export default function PickEditor(props: Props) {
                         size="sm"
                         tileStyles={{ primaryColor: colors.danger }}
                     />
-                    <TextInput
+                    <NumericInput
                         value={propLine}
                         onChangeText={setPropLine}
                         placeholder="Line"
                         placeholderTextColor={colors.textMuted}
-                        keyboardType="numeric"
                         style={{
                             borderWidth: 1,
                             borderColor: colors.inputBorder,

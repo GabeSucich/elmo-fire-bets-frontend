@@ -82,7 +82,7 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
           )}
           {isBuilding && (
             <Pressable onPress={() => handleSwapSelect(parlay.id)}>
-              <MaterialCommunityIcons name="swap-vertical-circle" size={22} color={isStagedForSwap(parlay.id) ? colors.success : colors.textSecondary} />
+              <MaterialCommunityIcons name="swap-vertical-circle" size={22} color={isStagedForSwap(parlay.id) ? colors.accentDark : colors.textSecondary} />
             </Pressable>
           )}
           {isBuilding && (

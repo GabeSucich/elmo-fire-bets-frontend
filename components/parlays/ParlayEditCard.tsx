@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react"
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup"
+import NumericInput from "../reusable/NumericInput"
 import { ParlayEditArgs } from "./common"
 import { useToastContext } from "@/contexts/toastContext"
 import { colors, shadows, typography, spacing } from "@/theme/colors"
@@ -95,13 +96,11 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
                     <Text style={styles.label}>Wager per person</Text>
                     <View style={styles.wagerInputRow}>
                         <Text style={styles.dollarSign}>$</Text>
-                        <TextInput
+                        <NumericInput
                             style={styles.wagerInput}
                             value={wagerPp}
                             onChangeText={setWagerPp}
-                            keyboardType="numeric"
                             placeholder="0.00"
-                            placeholderTextColor={colors.textMuted}
                         />
                     </View>
                 </View>

@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useListParlays } from "@/composables/useListParlays"
 import { View, TouchableOpacity, StyleSheet } from "react-native"
 import ParlayTabButtons from "@/components/reusable/TabButtons"
+import OverlayLoader from "@/components/reusable/OverlayLoader"
 import ParlaysList from "@/components/parlays/ParlaysList"
 import { GetSeasonParlaysSortParam, ParlayState, UpdateParlayRequestData } from "@/api"
 import { ParlaysProvider } from "@/contexts/parlaysContext"
@@ -73,6 +74,14 @@ export default function ParlaysView(props: Props) {
         reopenParlay: reopenClosedParlay
     } = useListParlays(props.seasonId, ParlayState.CLOSED, {sort: GetSeasonParlaysSortParam.DESC})
 
+    // One spinner for the screen. Each list used to raise its own, so switching tabs
+    // could show a list-level loader and a footer loader at once.
+    function activeTabLoading() {
+        if (activeTab === "Building") return buildingLoading
+        if (activeTab === "Closed") return closedLoading
+        return openLoading
+    }
+
     function myLays() {
         return openParlays.filter(lay => lay.owner_id === gamblerId)
     }
@@ -80,7 +89,7 @@ export default function ParlaysView(props: Props) {
     function VisibleParlays() {
         if (activeTab == "Building") {
             return <ParlaysList
-                key={`parlays-list`}
+                key={`parlays-${activeTab}`}
                 parlays={buildingParlays}
                 loadMore={loadNextBuildingParlays}
                 canLoadMore={canLoadMoreBuilding}
@@ -90,7 +99,7 @@ export default function ParlaysView(props: Props) {
             />
         } else if (activeTab === "Closed") {
             return <ParlaysList
-                key={`parlays-list`}
+                key={`parlays-${activeTab}`}
                 parlays={closedParlays}
                 loadMore={loadNextClosedParlays}
                 canLoadMore={canLoadMoreClosed}
@@ -100,7 +109,7 @@ export default function ParlaysView(props: Props) {
             />
         } else if (activeTab === "Open") {
             return <ParlaysList
-                key={`parlays-list`}
+                key={`parlays-${activeTab}`}
                 parlays={openParlays}
                 loadMore={loadNextOpenParlays}
                 canLoadMore={canLoadMoreOpen}
@@ -110,7 +119,7 @@ export default function ParlaysView(props: Props) {
             />
         } else if (activeTab === "My Lays") {
             return <ParlaysList
-                key={`parlays-list`}
+                key={`parlays-${activeTab}`}
                 parlays={myLays()}
                 loadMore={loadNextOpenParlays}
                 canLoadMore={canLoadMoreOpen}
@@ -213,6 +222,7 @@ export default function ParlaysView(props: Props) {
                 </View>
             </View>
             {VisibleParlays()}
+            {activeTabLoading() && <OverlayLoader loaderProps={{ text: "Loading parlays..." }} />}
             {/* Creating a parlay is the primary action on this tab, and it was crowding the
                 filters. It sits over the list instead. */}
             {activeTab === "Building" && (

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable } from "react-native";
 import AppModal from "@/components/reusable/AppModal";
+import DismissKeyboardBackdrop from "@/components/reusable/DismissKeyboardBackdrop";
 import OverlayLoader from "@/components/reusable/OverlayLoader";
 import { ParlaysService } from "@/api";
 import { ParlayEditArgs } from "../common";
@@ -45,7 +46,7 @@ export default function CreateParlayModal({ visible, onClose, seasonId }: Create
             animationType="fade"
             onRequestClose={onClose}
         >
-            <View style={{
+            <DismissKeyboardBackdrop style={{
                 flex: 1,
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -69,7 +70,7 @@ export default function CreateParlayModal({ visible, onClose, seasonId }: Create
                     <ParlayEditCard handleEdit={createParlay} />
                     {loading && <OverlayLoader />}
                 </View>
-            </View>
+            </DismissKeyboardBackdrop>
         </AppModal>
     )
 }

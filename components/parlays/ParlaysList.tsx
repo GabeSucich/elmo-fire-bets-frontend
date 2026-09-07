@@ -2,7 +2,6 @@ import { ParlayResponseData } from "@/api";
 import { ParlayCard } from "@/components/parlays/ParlayCard";
 import React, { useEffect, useRef, useState } from "react";
 import { Button, FlatList, Pressable, Text, View } from "react-native";
-import ActivityLoader from "../reusable/ActivityLoader";
 import OverlayLoader from "../reusable/OverlayLoader";
 import ParlayFooter from "./ParlayFooter";
 import { ParlayLoadingStates } from "@/composables/useListParlays";
@@ -53,10 +52,6 @@ export default function ParlaysList(props: Props) {
         }
     }, [props.parlays])
 
-    if (props.loadingAll && props.parlays.length === 0) {
-        return <ActivityLoader text="Loading parlays..." />
-    }
-
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>
             <FlatList
@@ -82,9 +77,6 @@ export default function ParlaysList(props: Props) {
                     )
                 }}
                 ListFooterComponent={() => {
-                    if (props.loadingAll && props.parlays.length > 0) {
-                        return <ActivityLoader size={20}/>
-                    }
                     if (props.canLoadMore) {
                         return (
                             <Pressable onPress={handleLoadMore} style={{ alignItems: 'center', paddingVertical: spacing.md }}>

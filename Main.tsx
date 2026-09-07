@@ -60,7 +60,11 @@ export default function Main({user}: Props) {
                         component={SeasonView}
                         options={(route) => ({
                             headerBackButtonDisplayMode: 'minimal',
-                            title: `${route.route.params.season.name} (${user.firstName})`
+                            // Who you are signed in as only matters while testing, where
+                            // several accounts get used against the same season.
+                            title: __DEV__
+                                ? `${route.route.params.season.name} (${user.firstName})`
+                                : route.route.params.season.name
                         })}
                     />
                 </Stack.Navigator>
