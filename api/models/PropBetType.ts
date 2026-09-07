@@ -18,6 +18,8 @@ export enum PropBetType {
     PASSING_INTS = 'Passing Ints',
     PASSING_YDS = 'Passing Yds',
     TDS = 'TDs',
+    RUSH_TDS = 'Rush TDs',
+    REC_TDS = 'Rec TDs',
     RECEPTIONS = 'Receptions',
     LONGEST_COMPLETION = 'Longest Completion',
     PASS_COMPLETIONS = 'Pass Completions',

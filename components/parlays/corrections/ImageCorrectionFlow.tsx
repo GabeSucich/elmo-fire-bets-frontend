@@ -44,13 +44,16 @@ export default function ImageCorrectionFlow(props: Props) {
                 target: playerTeamResultToRequestData(edit.playerTeamResult),
                 prop_type: edit.propType,
                 direction: edit.direction,
-                sauce_factor: edit.sauceFactor,
+                sauce_factor: row.sauceFactor !== undefined ? row.sauceFactor : edit.sauceFactor,
                 line: edit.line,
                 corrected_line: edit.line,
             })
         }
         const line = parseFloat(row.value)
         // A row edited by hand carries the whole pick; everything else moves only its number.
+        // A row-level sauce change rides along with whichever shape the override takes;
+        // undefined leaves the field out entirely so the stored value is untouched.
+        const sauce = row.sauceFactor !== undefined ? { sauce_factor: row.sauceFactor } : {}
         return row.edit
             ? PicksService.applyPickOverride(row.pick.id, {
                 target: playerTeamResultToRequestData(row.edit.playerTeamResult),
@@ -59,8 +62,9 @@ export default function ImageCorrectionFlow(props: Props) {
                 sauce_factor: row.edit.sauceFactor,
                 delete_veto: row.edit.deleteVeto,
                 line,
+                ...sauce,
             })
-            : PicksService.applyPickOverride(row.pick.id, { line })
+            : PicksService.applyPickOverride(row.pick.id, { line, ...sauce })
     }
 
     // Every row is submitted, including ones the slip had nothing to say about — applying a
@@ -180,6 +184,7 @@ export default function ImageCorrectionFlow(props: Props) {
                         key={row.gamblerId}
                         row={row}
                         onChangeValue={value => updateRow(row.gamblerId, { value })}
+                        onChangeSauce={sauceFactor => updateRow(row.gamblerId, { sauceFactor })}
                         onEditFully={() => props.onEditFully(row.gamblerId)}
                     />
                 ))}

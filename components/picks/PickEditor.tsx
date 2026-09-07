@@ -8,7 +8,7 @@ import SelectableTile from "../reusable/tiles/SelectableTile";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import NumericInput from "../reusable/NumericInput";
 import { PickCreateEditData } from "./common";
-import { getPickLine } from "@/util/picks";
+import { getPickLine, sauceFactorDisplay } from "@/util/picks";
 import { colors, typography, spacing, shadows } from "@/theme/colors";
 
 type Props = {
@@ -255,7 +255,7 @@ export default function PickEditor(props: Props) {
                     <SelectableTileGroup<SauceFactor>
                         selectedItem={selectedSauceFactor}
                         items={[SauceFactor.SPICY, SauceFactor.BITCH]}
-                        itemDisplay={s => s}
+                        itemDisplay={sauceFactorDisplay}
                         itemKey={s => s}
                         itemStyle={s => {
                             if (s === SauceFactor.SPICY) return {primaryColor: "#ef4444"}

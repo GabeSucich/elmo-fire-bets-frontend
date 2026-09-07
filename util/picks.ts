@@ -45,3 +45,13 @@ export const PickDisplayUtil = {
 export function getPickLine(pick: PickResponseData) {
     return pick.corrected_line ?? pick.line
 }
+
+/** The emoji that stands for each designation, used wherever one is shown or chosen. */
+export const SAUCE_EMOJI: Record<SauceFactor, string> = {
+    [SauceFactor.SPICY]: "🌶️",
+    [SauceFactor.BITCH]: "💩",
+}
+
+export function sauceFactorDisplay(sauceFactor: SauceFactor): string {
+    return `${SAUCE_EMOJI[sauceFactor]} ${sauceFactor}`
+}

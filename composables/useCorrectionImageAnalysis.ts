@@ -1,4 +1,4 @@
-import { CorrectionSuggestion, CorrectionsService, ExtractedLeg, ParlayResponseData, PickResponseData } from "@/api"
+import { CorrectionSuggestion, CorrectionsService, ExtractedLeg, ParlayResponseData, PickResponseData, SauceFactor } from "@/api"
 import { PickCreateEditData } from "@/components/picks/common"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { useToastContext } from "@/contexts/toastContext"
@@ -30,6 +30,12 @@ export type ReviewRowState = {
      * For a gambler with no pick this is the only way the row can be satisfied.
      */
     edit: PickCreateEditData | null
+    /**
+     * A spicy/bitch change made on the row itself, kept apart from `edit` so a gambler can
+     * re-designate a pick without opening the full editor. Undefined means "leave it as it
+     * is"; null is a real value meaning neither spicy nor bitch.
+     */
+    sauceFactor?: SauceFactor | null
 }
 
 /**

@@ -1,13 +1,16 @@
+import { SauceFactor } from "@/api"
 import { ReviewRowState } from "@/composables/useCorrectionImageAnalysis"
 import { colors, spacing, typography } from "@/theme/colors"
 import { playerTeamDisplay } from "@/util/executePlayerSearch"
-import { PickDisplayUtil } from "@/util/picks"
-import { Text, TextInput, TouchableOpacity, View } from "react-native"
+import { PickDisplayUtil, SAUCE_EMOJI } from "@/util/picks"
+import { Pressable, Text, TextInput, TouchableOpacity, View } from "react-native"
 
 type Props = {
     row: ReviewRowState
     onChangeValue: (value: string) => void
     onEditFully: () => void
+    /** null clears the designation; the row keeps its own value so the full editor is not needed. */
+    onChangeSauce: (next: SauceFactor | null) => void
 }
 
 /**
@@ -20,8 +23,49 @@ type Props = {
  * applies, so the row shows the override itself. And a gambler with no pick at all has
  * nothing to correct, so the row asks for one to be added.
  */
-export default function CorrectionReviewRow({ row, onChangeValue, onEditFully }: Props) {
+const SAUCE_OPTIONS: { factor: SauceFactor, color: string }[] = [
+    { factor: SauceFactor.SPICY, color: colors.danger },
+    { factor: SauceFactor.BITCH, color: colors.warning },
+]
+
+function SauceToggle({ value, onChange }: {
+    value: SauceFactor | null
+    onChange: (next: SauceFactor) => void
+}) {
+    return (
+        <View style={{ flexDirection: "row", gap: spacing.xs }}>
+            {SAUCE_OPTIONS.map(option => {
+                const selected = value === option.factor
+                return (
+                    <Pressable
+                        key={option.factor}
+                        onPress={() => onChange(option.factor)}
+                        hitSlop={6}
+                        accessibilityLabel={`${selected ? "Remove" : "Mark"} ${option.factor}`}
+                        style={{
+                            paddingHorizontal: spacing.sm,
+                            paddingVertical: spacing.xs,
+                            borderRadius: 14,
+                            borderWidth: 1,
+                            borderColor: selected ? option.color : colors.cardBorder,
+                            backgroundColor: selected ? option.color : "transparent",
+                            opacity: selected ? 1 : 0.5,
+                        }}
+                    >
+                        <Text style={{ fontSize: 13 }}>{SAUCE_EMOJI[option.factor]}</Text>
+                    </Pressable>
+                )
+            })}
+        </View>
+    )
+}
+
+export default function CorrectionReviewRow({ row, onChangeValue, onEditFully, onChangeSauce }: Props) {
     const { pick, leg, gamblerName, edit } = row
+    // The row's own change wins, then a staged full edit, then whatever is stored.
+    const sauce = row.sauceFactor !== undefined
+        ? row.sauceFactor
+        : edit ? edit.sauceFactor : pick?.sauce_factor ?? null
     const stored = pick ? PickDisplayUtil.lineAndDirectionDisplay(pick, true) : null
 
     const targetDisplay = edit
@@ -122,6 +166,18 @@ export default function CorrectionReviewRow({ row, onChangeValue, onEditFully }:
                         </Text>
                     )}
                 </>
+            )}
+
+            {!missingPick && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <Text style={{ ...typography.caption, color: colors.textSecondary }}>Sauce</Text>
+                    {/* Shown on edited rows too: the staged summary says nothing about sauce,
+                        so without this an override would hide whether a pick is spicy. */}
+                    <SauceToggle
+                        value={sauce}
+                        onChange={next => onChangeSauce(sauce === next ? null : next)}
+                    />
+                </View>
             )}
         </View>
     )

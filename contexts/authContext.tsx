@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useReducer, ReactNode, useState, useEffect } from "react";
-import { clearStoredSession, setUnauthorizedHandler, storeSession } from "@/util/authSession";
+import {
+  clearStoredSession,
+  getStoredCredentials,
+  getStoredUser,
+  resetUnauthorizedGuard,
+  setUnauthorizedHandler,
+  storeSession,
+} from "@/util/authSession";
 import { ApiError, AuthService } from "../api";
 import { setApiErrorMsg } from "@/util/error";
 import { useLoadingState } from "@/composables/useLoadingState";
@@ -14,6 +21,10 @@ export interface User {
 interface AuthContextType {
   user: User | null,
   loginLoading: boolean,
+  /** True while the app is signing back in from stored credentials, at launch or after a 401. */
+  reauthenticating: boolean,
+  /** True only while the stored session is read off disk at launch. */
+  restoring: boolean,
   /** Resolves true when the login succeeded, false when it failed (the failure is surfaced as a toast). */
   attemptLogin: (u: string, p: string) => Promise<boolean>;
 }
@@ -33,20 +44,73 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { showToast } = useToastContext()
 
   const [user, setUser] = useState<User | null>(null)
+  const [reauthenticating, setReauthenticating] = useState(false)
+  // Only covers reading the stored session off disk, which is milliseconds.
+  const [restoring, setRestoring] = useState(true)
 
-  // A 401 from any request means the session is no longer good: the stored
-  // credentials are cleared and dropping the user resets the app to the login screen.
-  useEffect(() => setUnauthorizedHandler(() => {
-    setUser(null)
-    showToast("Your session expired. Please log in again.")
+  /**
+   * Signs back in from the credentials kept at login.
+   *
+   * Used both on launch and on a 401. Tokens do lapse eventually, and the alternative to
+   * this is showing the login screen to someone who never asked to be signed out.
+   */
+  async function restoreSession(): Promise<boolean> {
+    const stored = await getStoredCredentials()
+    if (!stored) return false
+    try {
+      const response = await AuthService.login({ username: stored.username, password: stored.password })
+      const restored = { id: response.user_id, firstName: response.first_name, lastName: response.last_name }
+      await storeSession(stored.username, stored.password, response.token, restored)
+      setUser(restored)
+      return true
+    } catch {
+      // Wrong password, deleted account, backend down: nothing to recover to.
+      return false
+    }
+  }
+
+  /**
+   * Launch straight into the app on the session that was stored.
+   *
+   * No login call here: the token is good for 30 days, so re-authenticating on every
+   * cold start would make everyone watch a spinner to be told what is almost always
+   * true. The first real request settles it, and a 401 triggers recovery below.
+   */
+  useEffect(() => {
+    let cancelled = false
+    getStoredUser()
+      .then(stored => {
+        if (!cancelled && stored) {
+          setUser({ id: stored.id, firstName: stored.firstName, lastName: stored.lastName })
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRestoring(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  // A 401 means the token lapsed, which is not the same as the user wanting out. Try the
+  // stored credentials first and only fall back to the login screen if they no longer work.
+  useEffect(() => setUnauthorizedHandler(async () => {
+    setReauthenticating(true)
+    const recovered = await restoreSession()
+    setReauthenticating(false)
+    if (!recovered) {
+      await clearStoredSession()
+      setUser(null)
+      showToast("Your session expired. Please log in again.")
+    }
+    resetUnauthorizedGuard()
   }), [showToast])
 
   const attemptLogin = async (u: string, p: string) => {
     setLoading(true)
     try {
       const response = await AuthService.login({ username: u, password: p });
-      await storeSession(u, p, response.token)
-      setUser({id: response.user_id, firstName: response.first_name, lastName: response.last_name})
+      const loggedIn = { id: response.user_id, firstName: response.first_name, lastName: response.last_name }
+      await storeSession(u, p, response.token, loggedIn)
+      setUser(loggedIn)
       return true
     } catch (e) {
       await clearStoredSession()
@@ -58,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, attemptLogin, loginLoading: loading }}>
+    <AuthContext.Provider value={{ user, attemptLogin, loginLoading: loading, reauthenticating, restoring }}>
       {children}
     </AuthContext.Provider>
   );
