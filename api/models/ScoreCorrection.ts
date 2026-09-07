@@ -7,5 +7,6 @@ export type ScoreCorrection = {
     name: string;
     associated_value: number;
     adjustment: number;
+    summary: string;
 };
 

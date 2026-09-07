@@ -61,14 +61,13 @@ export default function AnalyticsView(props: Props) {
                     fontSize: 13,
                 },
                 tabBarShowIcon: true,
-                // Four tabs no longer fit across a phone. Scrolling needs an explicit
-                // auto width, or each item is sized to an equal share of the screen and
-                // the labels truncate instead of the bar scrolling.
-                tabBarScrollEnabled: true,
-                tabBarItemStyle: {
-                    width: "auto",
-                    paddingHorizontal: spacing.md,
-                },
+                // Three tabs fit across a phone and should share the width evenly; the
+                // fourth pushes past it, and scrolling then needs an explicit auto width
+                // or the labels truncate instead of the bar scrolling.
+                tabBarScrollEnabled: seasonPicks.enabled,
+                tabBarItemStyle: seasonPicks.enabled
+                    ? { width: "auto", paddingHorizontal: spacing.md }
+                    : undefined,
             }}
         >
             <Tab.Screen

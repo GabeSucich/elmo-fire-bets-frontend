@@ -15,6 +15,9 @@ import { colors, shadows, typography, spacing } from "@/theme/colors";
 import { slateTypeDisplay } from "./common";
 import Collapsible from "../reusable/Collapsible";
 
+/** One size for every action icon in the parlay header. */
+const ACTION_ICON_SIZE = 19
+
 interface ParlayCardProps {
   parlay: ParlayResponseData;
   editable: boolean
@@ -75,19 +78,38 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
               <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600' }}>{parlay.result}</Text>
             </View>
           )}
+          {/* Edit, swap and delete are all outline icons at one size: they sit together in
+              a busy header, and mixing a text label with filled glyphs made them read as
+              three unrelated controls. */}
           {editable && (
-            <Pressable onPress={() => setEditModalVisible(true)}>
-              <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '600' }}>Edit</Text>
+            <Pressable
+              onPress={() => setEditModalVisible(true)}
+              hitSlop={8}
+              accessibilityLabel="Edit parlay"
+            >
+              <MaterialCommunityIcons name="square-edit-outline" size={ACTION_ICON_SIZE} color={colors.accent} />
             </Pressable>
           )}
           {isBuilding && (
-            <Pressable onPress={() => handleSwapSelect(parlay.id)}>
-              <MaterialCommunityIcons name="swap-vertical-circle" size={22} color={isStagedForSwap(parlay.id) ? colors.accentDark : colors.textSecondary} />
+            <Pressable
+              onPress={() => handleSwapSelect(parlay.id)}
+              hitSlop={8}
+              accessibilityLabel="Swap parlay order"
+            >
+              <MaterialCommunityIcons
+                name="swap-vertical-circle-outline"
+                size={ACTION_ICON_SIZE}
+                color={isStagedForSwap(parlay.id) ? colors.accentDark : colors.textSecondary}
+              />
             </Pressable>
           )}
           {isBuilding && (
-            <Pressable onPress={() => setDeleteModalVisible(true)}>
-              <MaterialCommunityIcons name="delete" size={20} color={colors.danger} />
+            <Pressable
+              onPress={() => setDeleteModalVisible(true)}
+              hitSlop={8}
+              accessibilityLabel="Delete parlay"
+            >
+              <MaterialCommunityIcons name="delete-outline" size={ACTION_ICON_SIZE} color={colors.danger} />
             </Pressable>
           )}
           {/* The date doubles as the collapse control, so the caret sits with it rather

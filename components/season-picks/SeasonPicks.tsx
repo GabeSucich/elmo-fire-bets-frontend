@@ -8,6 +8,8 @@ import {
     SeasonPickStatus,
 } from "@/api"
 import ActivityLoader from "@/components/reusable/ActivityLoader"
+import Collapsible from "@/components/reusable/Collapsible"
+import Ionicons from "react-native-vector-icons/Ionicons"
 import OverlayLoader from "@/components/reusable/OverlayLoader"
 import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
@@ -66,6 +68,39 @@ function PaceLabel({ pick }: { pick: SeasonPickResponseData }) {
     )
 }
 
+type GamblerCardProps = {
+    name: string
+    pickCount: number
+    allowance: number
+    showAllowance: boolean
+    children: React.ReactNode
+}
+
+/** One gambler's picks, collapsible so a five-person season stays scannable. Open by
+ *  default, since seeing the picks is the point of the tab. */
+function GamblerCard({ name, pickCount, allowance, showAllowance, children }: GamblerCardProps) {
+    const [expanded, setExpanded] = useState(true)
+
+    return (
+        <View style={styles.card}>
+            <Pressable style={styles.cardHeader} onPress={() => setExpanded(open => !open)}>
+                <Text style={styles.gamblerName}>{name}</Text>
+                {showAllowance && (
+                    <Text style={styles.pickCount}>{pickCount}/{allowance}</Text>
+                )}
+                <Ionicons
+                    name={expanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={colors.textSecondary}
+                />
+            </Pressable>
+            <Collapsible expanded={expanded}>
+                <View style={styles.cardBody}>{children}</View>
+            </Collapsible>
+        </View>
+    )
+}
+
 export default function SeasonPicks({ season }: Props) {
     const { gamblerId } = useGamblingSeasonContext()
 
@@ -112,13 +147,13 @@ export default function SeasonPicks({ season }: Props) {
 
             <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
                 {byGambler.map(({ gambler, picks }) => (
-                    <View key={gambler.id} style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.gamblerName}>{gambler.firstName}</Text>
-                            {season.latestOpenWeek === 0 && (
-                                <Text style={styles.pickCount}>{picks.length}/{season.pickCount}</Text>
-                            )}
-                        </View>
+                    <GamblerCard
+                        key={gambler.id}
+                        name={gambler.firstName}
+                        pickCount={picks.length}
+                        allowance={season.pickCount}
+                        showAllowance={season.latestOpenWeek === 0}
+                    >
 
                         {picks.length === 0 && (
                             <Text style={styles.fillerText}>No season picks yet.</Text>
@@ -200,9 +235,16 @@ export default function SeasonPicks({ season }: Props) {
                                 </Pressable>
                             </View>
                         )}
-                    </View>
+                    </GamblerCard>
                 ))}
             </ScrollView>
+
+            {/* The modal closes as soon as the write lands, but the list is still being
+                re-fetched behind it — without this the tab sits on stale rows with no
+                sign that the new pick is on its way. */}
+            {season.loading && season.initialized && (
+                <OverlayLoader />
+            )}
 
             <SeasonPickEditorModal
                 visible={editing !== null}
@@ -249,6 +291,7 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: colors.cardBorder, gap: spacing.sm, ...shadows.card,
     },
     cardHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    cardBody: { gap: spacing.sm, paddingTop: spacing.sm },
     gamblerName: { ...typography.heading, color: colors.textPrimary, flex: 1 },
     pickCount: { ...typography.caption, color: colors.textMuted },
     cardFooter: { flexDirection: "row", justifyContent: "flex-end" },

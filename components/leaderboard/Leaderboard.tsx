@@ -3,7 +3,6 @@ import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import AnimatedAccordion from "@/components/reusable/AnimatedAccordion";
 import React, { useMemo, useState } from "react";
 import { Text, View, StyleSheet, Pressable, ScrollView } from "react-native";
-import Entypo from "react-native-vector-icons/Entypo";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { colors, shadows, typography, spacing } from "@/theme/colors";
 
@@ -76,6 +75,12 @@ type CardProps = {
 }
 
 function LeaderboardCard({ rank, tied, decimals, name, performance }: CardProps) {
+    // Deductions and boosts read as one sentence rather than as separate chips, so a
+    // gambler with two of them does not get a wall of coloured pills.
+    const corrections: ScoreCorrection[] = [
+        ...Object.values(performance.augmentations),
+        ...Object.values(performance.deductions),
+    ]
     // Held here rather than in a nested AnimatedAccordion: that component renders its
     // children twice (a hidden copy is measured to animate the height), so a nested
     // accordion would have two independent open states and the outer card would size
@@ -116,20 +121,24 @@ function LeaderboardCard({ rank, tied, decimals, name, performance }: CardProps)
                                 />
                             </Pressable>
                         </View>
-                        <View style={styles.chipsRow}>
-                            {Object.values(performance.deductions).map((d: ScoreCorrection) => (
-                                <View key={d.identifier} style={[styles.chip, styles.deductionChip]}>
-                                    <Entypo name="arrow-down" size={11} color={colors.dangerDark} />
-                                    <Text style={styles.deductionText}>{d.name} ({d.associated_value}) ({`${d.adjustment}%`})</Text>
-                                </View>
-                            ))}
-                            {Object.values(performance.augmentations).map((a: ScoreCorrection) => (
-                                <View key={a.identifier} style={[styles.chip, styles.augmentationChip]}>
-                                    <Entypo name="arrow-up" size={11} color={colors.successDark} />
-                                    <Text style={styles.augmentationText}>{a.name} ({a.associated_value}) ({`+${a.adjustment}%`})</Text>
-                                </View>
-                            ))}
-                        </View>
+                        {corrections.length > 0 && (
+                            <View style={styles.correctionsRow}>
+                                {corrections.map((correction, index) => (
+                                    <React.Fragment key={correction.identifier}>
+                                        {index > 0 && <Text style={styles.correctionSeparator}>·</Text>}
+                                        <Text style={styles.correctionText}>
+                                            <Text style={correction.adjustment >= 0 ? styles.caretUp : styles.caretDown}>
+                                                {correction.adjustment >= 0 ? "▲" : "▼"}
+                                            </Text>
+                                            {` ${correction.summary} `}
+                                            <Text style={correction.adjustment >= 0 ? styles.caretUp : styles.caretDown}>
+                                                {correction.adjustment >= 0 ? `+${correction.adjustment}` : correction.adjustment}%
+                                            </Text>
+                                        </Text>
+                                    </React.Fragment>
+                                ))}
+                            </View>
+                        )}
                     </>
                 )}
             >
@@ -260,14 +269,9 @@ const styles = StyleSheet.create({
         marginLeft: 'auto',
     },
     streakBadge: {
-        backgroundColor: 'rgba(239, 68, 68, 0.2)',
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
-        borderRadius: 8,
+        paddingHorizontal: 2,
     },
-    coldStreak: {
-        backgroundColor: 'rgba(96, 165, 250, 0.2)',
-    },
+    coldStreak: {},
     bozoStreak: {
         backgroundColor: 'rgba(168, 85, 247, 0.2)',
     },
@@ -275,35 +279,24 @@ const styles = StyleSheet.create({
         ...typography.caption,
         color: colors.textPrimary,
     },
-    chipsRow: {
+    correctionsRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'flex-start',
-        gap: spacing.xs,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: spacing.md,
         marginTop: spacing.sm,
     },
-    chip: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        paddingVertical: 3,
-        paddingHorizontal: spacing.sm,
-        borderRadius: 6,
+    correctionText: {
+        ...typography.body,
+        color: colors.textSecondary,
     },
-    deductionChip: {
-        backgroundColor: colors.dangerLight,
+    correctionSeparator: {
+        ...typography.body,
+        color: colors.textMuted,
     },
-    augmentationChip: {
-        backgroundColor: colors.successLight,
-    },
-    deductionText: {
-        ...typography.small,
-        color: colors.dangerDark,
-    },
-    augmentationText: {
-        ...typography.small,
-        color: colors.successDark,
-    },
+    caretUp: { color: colors.success },
+    caretDown: { color: colors.danger },
     metricsButton: {
         padding: spacing.xs,
     },

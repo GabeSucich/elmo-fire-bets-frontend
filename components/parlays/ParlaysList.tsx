@@ -77,7 +77,10 @@ export default function ParlaysList(props: Props) {
                     )
                 }}
                 ListFooterComponent={() => {
-                    if (props.canLoadMore) {
+                    // canLoadMore starts true, before anything has been fetched. Without the
+                    // row check the button renders over an empty list during the first load,
+                    // where it reads as "Load more" sitting at the top of an empty page.
+                    if (props.canLoadMore && props.parlays.length > 0 && !props.loadingAll) {
                         return (
                             <Pressable onPress={handleLoadMore} style={{ alignItems: 'center', paddingVertical: spacing.md }}>
                                 <Text style={{ color: colors.accent, ...typography.body, fontWeight: '600' }}>Load more</Text>
