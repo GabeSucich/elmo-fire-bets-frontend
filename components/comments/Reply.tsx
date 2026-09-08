@@ -26,10 +26,10 @@ export default function Reply({ comment, readOnly, pending, onEdited }: Props) {
         }}>
             {pending && <OverlayLoader loaderProps={{ size: 18 }} />}
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                <Text style={{ ...typography.caption, color: colors.textPrimary, fontWeight: "600" }}>
+                <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: "600" }}>
                     {comment.authorName}
                 </Text>
-                <Text style={{ ...typography.small, color: colors.textMuted }}>
+                <Text style={{ ...typography.caption, color: colors.textMuted }}>
                     {relativeTime(comment.createdAt)}
                 </Text>
                 <View style={{ flex: 1 }} />
@@ -55,25 +55,39 @@ export default function Reply({ comment, readOnly, pending, onEdited }: Props) {
                             borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10,
                             paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
                             color: colors.textPrimary, backgroundColor: colors.inputBackground,
-                            minHeight: 64, ...typography.body,
+                            minHeight: 72, fontSize: 16,
                         }}
                     />
-                    <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: spacing.md }}>
-                        <Pressable onPress={() => setEditing(false)} hitSlop={8}>
-                            <Text style={{ ...typography.caption, color: colors.textSecondary }}>Cancel</Text>
+                    {/* Real buttons rather than caption-sized text links. Both clear 44pt
+                        from their own padding, so the target is where the ink is instead of
+                        being an invisible slop rectangle around a 12px word. */}
+                    <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: spacing.sm }}>
+                        <Pressable
+                            // Raw touch, for the same reason as the send button: with the
+                            // edit field focused, no press handler is reachable at all.
+                            onTouchStart={() => setEditing(false)}
+                            style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}
+                        >
+                            <Text style={{ ...typography.body, color: colors.textSecondary }}>Cancel</Text>
                         </Pressable>
                         <Pressable
                             // Closed by the callback rather than here, so a failed save
                             // keeps the edit open with what was typed in it.
-                            onPress={() => text.trim() && onEdited(text.trim(), () => setEditing(false))}
-                            hitSlop={8}
+                            onTouchStart={() => text.trim() && onEdited(text.trim(), () => setEditing(false))}
+                            style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.lg }}
                         >
-                            <Text style={{ ...typography.caption, color: colors.accent, fontWeight: "600" }}>Save</Text>
+                            <Text style={{ ...typography.body, color: colors.accent, fontWeight: "600" }}>Save</Text>
                         </Pressable>
                     </View>
                 </View>
             ) : (
-                <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: spacing.xs }}>
+                // The message itself, at reading size rather than at the caption size the
+                // metadata around it uses — this is the content, not a label for it.
+                <Text style={{
+                    fontSize: 16, lineHeight: 22,
+                    color: colors.textPrimary,
+                    marginTop: spacing.xs,
+                }}>
                     {comment.comment}
                 </Text>
             )}

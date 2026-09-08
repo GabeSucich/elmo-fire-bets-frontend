@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions,
+    ActivityIndicator, Pressable, ScrollView, TextInput, View, useWindowDimensions,
 } from "react-native"
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import { ThreadController } from "@/composables/useCommentThread"
-import { colors, spacing, typography } from "@/theme/colors"
+import { colors, spacing } from "@/theme/colors"
 import Reply from "./Reply"
 
 /** How much of the screen the replies may take before they start scrolling. */
 const REPLIES_MAX_SHARE = 0.38
+/** Comfortably past the 44pt minimum, and the field matches it so the row reads as one. */
+const SEND_BUTTON_SIZE = 48
 
 type Props = {
     thread: ThreadController
@@ -44,6 +46,23 @@ export default function CommentThread({
     // A new reply is the one write with no row of its own; editing or deleting a reply
     // shows its spinner over that reply instead, so the send button stays still.
     const posting = thread.saving && thread.pendingId === null
+    const canSend = reply.trim().length > 0 && !posting
+
+    function send() {
+        if (!canSend) return
+        const text = reply.trim()
+        // Cleared here rather than from the success callback. The callback is threaded
+        // through useWriteState and does not survive the re-render that dismissing the
+        // keyboard causes, so the reply posted and the box kept its text.
+        //
+        // Put back if the post fails, which keeps the original guarantee: you never lose
+        // what you typed to a failed request. Only overwritten if the box is still empty —
+        // if you have started typing the next reply in the meantime, that wins.
+        setReply("")
+        thread.create(text, () => { followNewReply.current = true }, () => {
+            setReply(current => (current.length === 0 ? text : current))
+        })
+    }
 
     useEffect(() => {
         setReply("")
@@ -59,7 +78,14 @@ export default function CommentThread({
                 fixed number, so the same rule holds on a small phone as on a large one. */}
             <ScrollView
                 ref={replies}
-                style={{ maxHeight: windowHeight * maxHeightShare }}
+                // maxHeight caps it when there is room; flexShrink is what saves it when
+                // there is not. The keyboard shrinks the sheet, but a maxHeight measured
+                // off the *full* window does not shrink with it — so the replies kept
+                // claiming 38% of a screen that was no longer there and pushed the composer
+                // down under the keyboard, where its taps go to the keyboard rather than to
+                // the button. Shrinking first means the composer is always the last thing
+                // to lose space, so the send button stays reachable with the keyboard up.
+                style={{ maxHeight: windowHeight * maxHeightShare, flexShrink: 1 }}
                 contentContainerStyle={{ paddingBottom: spacing.md }}
                 keyboardShouldPersistTaps="handled"
                 // Opens at the newest reply. The thread runs oldest first, so landing at the
@@ -115,33 +141,41 @@ export default function CommentThread({
                         placeholderTextColor={colors.textMuted}
                         multiline
                         style={{
-                            flex: 1, maxHeight: 100,
-                            borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10,
-                            paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+                            flex: 1, minHeight: SEND_BUTTON_SIZE, maxHeight: 120,
+                            borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 12,
+                            paddingHorizontal: spacing.md, paddingVertical: spacing.md,
                             color: colors.textPrimary, backgroundColor: colors.inputBackground,
-                            ...typography.body,
+                            fontSize: 16,
                         }}
                     />
                     <Pressable
-                        // Cleared by the callback rather than here, so a failed post keeps
-                        // the text in the box.
-                        onPress={() => thread.create(reply.trim(), () => {
-                            setReply("")
-                            followNewReply.current = true
-                        })}
-                        disabled={!reply.trim() || posting}
+                        // Sent from the raw touch, not from a press handler.
+                        //
+                        // With the field focused, onTouchStart fires but onPressIn and
+                        // onPress never do: the press gesture is terminated before
+                        // Pressability can resolve it, so anything built on press semantics
+                        // is simply unreachable while the keyboard is up. That is why
+                        // sending took two taps — the first was spent losing focus, and only
+                        // once the keyboard was gone could a press complete.
+                        //
+                        // The cost is that dragging off after touching down will not cancel.
+                        // Guarded by hand rather than by `disabled`, since a raw touch
+                        // handler still fires on a disabled Pressable.
+                        onTouchStart={send}
+                        disabled={!canSend}
                         hitSlop={8}
                         accessibilityRole="button"
                         accessibilityLabel="Post reply"
                         style={{
-                            width: 38, height: 38, borderRadius: 19,
+                            width: SEND_BUTTON_SIZE, height: SEND_BUTTON_SIZE,
+                            borderRadius: SEND_BUTTON_SIZE / 2,
                             alignItems: "center", justifyContent: "center",
-                            backgroundColor: reply.trim() && !posting ? colors.accent : colors.buttonDisabled,
+                            backgroundColor: canSend ? colors.accent : colors.buttonDisabled,
                         }}
                     >
                         {posting
                             ? <ActivityIndicator size="small" color={colors.textPrimary} />
-                            : <MaterialCommunityIcons name="send" size={16} color={colors.textPrimary} />}
+                            : <MaterialCommunityIcons name="send" size={22} color={colors.textPrimary} />}
                     </Pressable>
                 </View>
             )}

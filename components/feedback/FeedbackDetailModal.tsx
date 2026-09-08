@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react"
-import {
-    Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, View,
-} from "react-native"
+import { Keyboard, Pressable, Text, View } from "react-native"
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import { FeedbackResponseData, FeedbackStatus } from "@/api"
 import AppModal from "@/components/reusable/AppModal"
@@ -10,6 +8,7 @@ import IconAction from "@/components/reusable/IconAction"
 import CommentThread from "@/components/comments/CommentThread"
 import ConfirmDelete from "@/components/comments/ConfirmDelete"
 import { useFeedbackComments, useFeedbackVoters } from "@/composables/useFeedback"
+import useKeyboardHeight from "@/composables/useKeyboardHeight"
 import { relativeTime } from "@/util/relativeTime"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
 import VoteControl, { VoteDirection } from "./VoteControl"
@@ -77,6 +76,7 @@ function VoterRow({ icon, color, names }: { icon: string, color: string, names: 
  */
 export default function FeedbackDetailModal(props: Props) {
     const { feedback, viewerIsAdmin } = props
+    const keyboardHeight = useKeyboardHeight()
     const comments = useFeedbackComments(feedback?.id ?? null)
     // Re-fetched when the tally moves, so the names never disagree with the number.
     const { voters } = useFeedbackVoters(feedback?.id ?? null, feedback?.score ?? 0)
@@ -103,13 +103,10 @@ export default function FeedbackDetailModal(props: Props) {
 
     return (
         <AppModal visible animationType="slide" transparent onRequestClose={props.onClose}>
-            <KeyboardAvoidingView
-                // The sheet sits on the bottom edge with the reply box at its foot, so
-                // without this the keyboard covers the field the moment it is tapped.
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-            >
-            <View style={{ flex: 1, backgroundColor: colors.overlay }}>
+            {/* Padded by the measured keyboard rather than wrapped in a
+                KeyboardAvoidingView — see useKeyboardHeight for why that does not hold up
+                inside a Modal. */}
+            <View style={{ flex: 1, backgroundColor: colors.overlay, paddingBottom: keyboardHeight }}>
                 {/* Only the dim strip above the sheet dismisses the keyboard. The usual
                     backdrop wraps the whole sheet, and a touchable ancestor takes the pan
                     before the replies' scroll view can — which is why they would not
@@ -268,7 +265,6 @@ export default function FeedbackDetailModal(props: Props) {
                     {props.saving && <OverlayLoader loaderProps={{ size: 28 }} />}
                 </View>
             </View>
-            </KeyboardAvoidingView>
         </AppModal>
     )
 }

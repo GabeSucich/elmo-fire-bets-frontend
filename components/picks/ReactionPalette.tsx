@@ -45,12 +45,12 @@ export default function ReactionPalette({ onPick, mine = [] }: Props) {
                         // Never squeezed to fit: in a scroller the row is as wide as it needs
                         // to be, and shrinking would defeat the scrolling.
                         style={{
-                            paddingHorizontal: spacing.xs, paddingVertical: 2, flexShrink: 0,
+                            paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, flexShrink: 0,
                             borderRadius: 8, borderWidth: 1,
                             borderColor: chosen ? colors.accent : "transparent",
                         }}
                     >
-                        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                        <Text style={{ fontSize: 24 }}>{emoji}</Text>
                     </Pressable>
                 )
             })}

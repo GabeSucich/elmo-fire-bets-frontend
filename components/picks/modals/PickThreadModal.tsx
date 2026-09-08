@@ -1,7 +1,5 @@
 import React, { useEffect } from "react"
-import {
-    Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, View,
-} from "react-native"
+import { Keyboard, Pressable, Text, View } from "react-native"
 import { PickReactionResponseData, PickResponseData } from "@/api"
 import AppModal from "@/components/reusable/AppModal"
 import IconAction from "@/components/reusable/IconAction"
@@ -9,6 +7,7 @@ import CommentThread from "@/components/comments/CommentThread"
 import PickDisplay from "@/components/picks/PickDisplay"
 import AddReactionButton from "@/components/picks/AddReactionButton"
 import { myEmoji, sameReactions, usePickComments, usePickReactions } from "@/composables/usePickSocial"
+import useKeyboardHeight from "@/composables/useKeyboardHeight"
 import { Gambler, useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { PickDisplayUtil } from "@/util/picks"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
@@ -64,7 +63,7 @@ function groupByReactor(
 }
 
 /** The drawn circle. Big enough to read an emoji in, small enough for two cells a row. */
-const STACK_SIZE = 24
+const STACK_SIZE = 34
 /** How much of the one before each disc covers. */
 const STACK_OVERLAP = 0.3
 /** Past this the stack would crowd the name out of a half-width cell. */
@@ -111,7 +110,7 @@ function ReactionStack({ emoji }: { emoji: string[] }) {
                 >
                     <Text
                         style={{
-                            fontSize: 13,
+                            fontSize: 19,
                             // Stretched, then centred. Left to itself the Text hugs the
                             // glyph's advance box, so alignItems centres that box and
                             // textAlign has no room to do anything — and an emoji whose ink
@@ -144,6 +143,7 @@ function ReactionStack({ emoji }: { emoji: string[] }) {
 export default function PickThreadModal(props: Props) {
     const { pick, readOnly, isOwnPick = false } = props
     const { gamblerId, sortedGamblers } = useGamblingSeasonContext()
+    const keyboardHeight = useKeyboardHeight()
 
     const reactions = usePickReactions(props.patchPick)
     const comments = usePickComments(pick?.id ?? null, {
@@ -173,13 +173,10 @@ export default function PickThreadModal(props: Props) {
 
     return (
         <AppModal visible animationType="slide" transparent onRequestClose={props.onClose}>
-            <KeyboardAvoidingView
-                // The sheet sits on the bottom edge with the reply box at its foot, so
-                // without this the keyboard covers the field the moment it is tapped.
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={{ flex: 1 }}
-            >
-            <View style={{ flex: 1, backgroundColor: colors.overlay }}>
+            {/* Padded by the measured keyboard rather than wrapped in a
+                KeyboardAvoidingView — see useKeyboardHeight for why that does not hold up
+                inside a Modal. */}
+            <View style={{ flex: 1, backgroundColor: colors.overlay, paddingBottom: keyboardHeight }}>
                 {/* Only the dim strip above the sheet dismisses the keyboard — a touchable
                     ancestor would take the pan before the replies' scroll view could.
                     Nothing here closes the modal: losing a half-written reply to a stray
@@ -243,7 +240,7 @@ export default function PickThreadModal(props: Props) {
                                 alignSelf: "flex-start",
                             }}>
                                 <AddReactionButton
-                                    iconSize={18}
+                                    iconSize={26}
                                     mine={myEmoji(pick.reactions, gamblerId)}
                                     onPick={emoji => reactions.toggle(pick.id, emoji)}
                                 />
@@ -272,7 +269,6 @@ export default function PickThreadModal(props: Props) {
                     />
                 </View>
             </View>
-            </KeyboardAvoidingView>
         </AppModal>
     )
 }

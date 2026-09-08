@@ -38,7 +38,7 @@ export type ThreadController = {
     loadedId: number | null
     saving: boolean
     pendingId: number | null
-    create: (comment: string, done?: () => void) => void
+    create: (comment: string, done?: () => void, onFailed?: () => void) => void
     update: (commentId: number, comment: string, done?: () => void) => void
     remove: (commentId: number, done?: () => void) => void
 }
@@ -206,15 +206,27 @@ export default function useCommentThread<T>(config: CommentThreadConfig<T>): Thr
         writes.finish()
     }
 
+    // Not useApiActionState for the create: that helper has no failure hook, and the
+    // composer needs one to put back text it cleared optimistically.
+    const failedCreate = useRef<(() => void) | null>(null)
     const { execute: createComment } = useApiActionState(
         config.create,
         (raw: T) => {
+            failedCreate.current = null
             // The thread is oldest-first, so a new reply belongs on the end — right above
             // the box it was typed in.
             appendNew([toThreadComment(raw)])
             writes.finish()
         },
-        writes.track,
+        (value: boolean | ((prev: boolean) => boolean)) => {
+            // The helper always reaches its finally, success or not. Anything still armed
+            // by the time it does never saw a response, so the post failed.
+            if (value === false && failedCreate.current) {
+                failedCreate.current()
+                failedCreate.current = null
+            }
+            writes.track(value)
+        },
         "There was an error posting that reply"
     )
     const { execute: updateComment } = useApiActionState(
@@ -232,8 +244,9 @@ export default function useCommentThread<T>(config: CommentThreadConfig<T>): Thr
         loadedId,
         saving: writes.saving,
         pendingId: writes.pendingId,
-        create: (comment, done) => {
+        create: (comment, done, onFailed) => {
             if (targetId === null) return
+            failedCreate.current = onFailed ?? null
             writes.begin(null, done)
             createComment(targetId, comment)
         },

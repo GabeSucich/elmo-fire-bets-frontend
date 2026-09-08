@@ -71,7 +71,7 @@ export default function PickReactionBar({
                             accessibilityLabel={`${reaction.emoji} ${reaction.gambler_ids.length}`}
                             style={{
                                 flexDirection: "row", alignItems: "center", gap: 3,
-                                paddingHorizontal: spacing.sm, paddingVertical: 2,
+                                paddingHorizontal: spacing.sm, paddingVertical: 4,
                                 // Never squeezed to fit: in a scroller the row is as wide as
                                 // it needs to be, and shrinking would defeat the scrolling.
                                 flexShrink: 0,
@@ -82,14 +82,14 @@ export default function PickReactionBar({
                                 backgroundColor: mine ? colors.backgroundSecondary : "transparent",
                             }}
                         >
-                            <Text style={{ fontSize: 14 }}>{reaction.emoji}</Text>
+                            <Text style={{ fontSize: 17 }}>{reaction.emoji}</Text>
                             {/* A lone "1" beside every chip is noise: one is what a chip
                                 already means, so the number only earns its place once it
                                 says something the emoji does not. The accessible label
                                 still carries the count either way. */}
                             {reaction.gambler_ids.length > 1 && (
                                 <Text style={{
-                                    ...typography.caption,
+                                    fontSize: 13,
                                     color: mine ? colors.accent : colors.textMuted,
                                     fontWeight: "600",
                                 }}>
@@ -114,8 +114,8 @@ export default function PickReactionBar({
                         paddingVertical: 2, flexShrink: 0,
                     }}
                 >
-                    <MaterialCommunityIcons name="comment-outline" size={16} color={colors.textMuted} />
-                    <Text style={{ ...typography.caption, color: colors.textMuted }}>
+                    <MaterialCommunityIcons name="comment-outline" size={21} color={colors.textMuted} />
+                    <Text style={{ fontSize: 13, color: colors.textMuted }}>
                         {commentCount}
                     </Text>
                 </Pressable>

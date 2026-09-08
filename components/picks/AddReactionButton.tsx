@@ -20,7 +20,7 @@ type Props = {
  * same behaviour from one place — they had identical needs, and the second copy would have
  * drifted.
  */
-export default function AddReactionButton({ onPick, mine, iconSize = 17 }: Props) {
+export default function AddReactionButton({ onPick, mine, iconSize = 22 }: Props) {
     // Where the palette hangs from, measured on the way open. Null while closed.
     const [anchor, setAnchor] = useState<PopoverAnchor | null>(null)
     const button = useRef<View>(null)
@@ -37,7 +37,7 @@ export default function AddReactionButton({ onPick, mine, iconSize = 17 }: Props
                 accessibilityLabel="Add a reaction"
                 style={{
                     flexDirection: "row", alignItems: "center", gap: spacing.sm,
-                    paddingHorizontal: spacing.xs, paddingVertical: 2,
+                    paddingHorizontal: spacing.xs, paddingVertical: 4,
                 }}
             >
                 <MaterialCommunityIcons
