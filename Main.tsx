@@ -5,6 +5,7 @@ import SeasonView from "@/screens/SeasonView";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SeasonHeaderMenu from "@/components/navigation/SeasonHeaderMenu";
+import SuggestionsView from "@/screens/SuggestionsView";
 import { colors } from "@/theme/colors";
 
 export type MainStackParamList = {
@@ -13,6 +14,11 @@ export type MainStackParamList = {
     },
     Season: {
         season: GamblerSeason,
+    },
+    // Pushed over the season rather than living inside it: everything it renders is
+    // scoped by season id alone, so it needs none of the season's tab context.
+    Suggestions: {
+        seasonId: number,
     }
 }
 
@@ -71,6 +77,9 @@ export default function Main({user}: Props) {
                                     // copy of it, so the stack does not grow every time and
                                     // the transition reads as going back, which it is.
                                     onAllSeasons={() => navigation.goBack()}
+                                    onSuggestions={() => navigation.navigate("Suggestions", {
+                                        seasonId: route.params.season.seasonId,
+                                    })}
                                 />
                             ),
                             // Who you are signed in as only matters while testing, where
@@ -79,6 +88,16 @@ export default function Main({user}: Props) {
                                 ? `${route.params.season.name} (${user.firstName})`
                                 : route.params.season.name
                         })}
+                    />
+                    <Stack.Screen
+                        name="Suggestions"
+                        component={SuggestionsView}
+                        options={{
+                            title: "Suggestions",
+                            // Just the chevron. The season's name is long enough that
+                            // carrying it as the back label shoves the title off centre.
+                            headerBackButtonDisplayMode: "minimal",
+                        }}
                     />
                 </Stack.Navigator>
             </NavigationContainer>

@@ -8,6 +8,7 @@ import { colors, shadows, spacing, typography } from "@/theme/colors"
 
 type Props = {
     onAllSeasons: () => void
+    onSuggestions: () => void
 }
 
 type MenuItem = {
@@ -33,12 +34,13 @@ const TOUCH_SIZE = 34
  * button sat there reading like a second title. A menu also gives account-level actions
  * somewhere to live, which is where logging out belongs.
  */
-export default function SeasonHeaderMenu({ onAllSeasons }: Props) {
+export default function SeasonHeaderMenu({ onAllSeasons, onSuggestions }: Props) {
     const [open, setOpen] = useState(false)
     const insets = useSafeAreaInsets()
     const { logout } = useAuthContext()
 
     const items: MenuItem[] = [
+        { label: "Suggestions", icon: "lightbulb-outline", onPress: onSuggestions },
         { label: "All seasons", icon: "format-list-bulleted", onPress: onAllSeasons },
         { label: "Log out", icon: "logout", onPress: logout, destructive: true },
     ]
