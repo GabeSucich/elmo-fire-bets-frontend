@@ -5,28 +5,31 @@ import { ParlayResponseData, PickResponseData, ParlayResult, ParlayState } from 
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import GamblerParlaySlot from "../picks/GamblerParlaySlot";
 import { useParlaysContext } from "@/contexts/parlaysContext";
-import ParlayFooter from "./ParlayFooter";
 import { TileSize } from "../reusable/tiles/common";
 import { ParlayResultColors } from "@/util/pickResults";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import DeleteParlayModal from "./modals/DeleteParlayModal";
 import ParlayEditorModal from "./modals/ParlayEditorModal";
-import { colors, shadows, typography, spacing } from "@/theme/colors";
+import { ACTION_ICON_SIZE, colors, shadows, typography, spacing } from "@/theme/colors";
 import { slateTypeDisplay } from "./common";
 import Collapsible from "../reusable/Collapsible";
-
-/** One size for every action icon in the parlay header. */
-const ACTION_ICON_SIZE = 19
 
 interface ParlayCardProps {
   parlay: ParlayResponseData;
   editable: boolean
   pickTileSize?: TileSize
-  hideFooter?: boolean
+  /**
+   * The card's actions, supplied by the caller rather than imported here.
+   *
+   * ParlayCard used to import ParlayFooter directly, which closed a require cycle:
+   * the footer reaches ParlayFinalization, which renders a card of its own. Injecting
+   * it keeps this component presentational and the dependency one-directional.
+   */
+  footer?: React.ReactNode
   disableResultEditing?: boolean
 }
 
-export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disableResultEditing }: ParlayCardProps) {
+export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResultEditing }: ParlayCardProps) {
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   // Closed parlays open collapsed to just their header; everything else starts open.
@@ -148,7 +151,7 @@ export function ParlayCard({ parlay, editable, pickTileSize, hideFooter, disable
           }
 
           <View style={styles.footerDivider} />
-          {!hideFooter && <ParlayFooter parlay={parlay} />}
+          {footer}
       </Collapsible>
 
       <ParlayEditorModal

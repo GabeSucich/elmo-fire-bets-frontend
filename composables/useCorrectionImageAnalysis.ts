@@ -118,6 +118,18 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
         }
     }
 
+    /**
+     * Opens the same review with nothing read from a slip: every gambler gets a row seeded
+     * from their existing pick, to be typed in by hand. Entering adjustments manually is
+     * the same job as reviewing proposed ones, so it is the same screen.
+     */
+    function startManual() {
+        setLegs([])
+        setStatedLegCount(null)
+        setRows(buildRows([], []))
+        setPhase('review')
+    }
+
     function updateRow(gamblerId: number, changes: Partial<ReviewRowState>) {
         setRows(current => current.map(row => row.gamblerId === gamblerId ? { ...row, ...changes } : row))
     }
@@ -141,6 +153,7 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
         statedLegCount,
         rows,
         analyze,
+        startManual,
         updateRow,
         dropRows,
         reset,

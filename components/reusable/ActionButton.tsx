@@ -1,30 +1,95 @@
 import React from "react"
-import { Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import { colors, typography, spacing, shadows } from "@/theme/colors"
 
+/**
+ * Fixed height for a button's contents, so a glyph and a label produce the same button.
+ * An icon's line box is taller than caption text, which left the lock button standing
+ * proud of the CTAs beside it.
+ */
+const CONTENT_HEIGHT = 18
+const ICON_SIZE = 16
+
 type Props = {
-    text: string
+    /** Optional when `icon` is given: an icon-only button still gets the same fill. */
+    text?: string
+    /** MaterialCommunityIcons name, rendered in place of the label. */
+    icon?: string
+    /** Spoken label for an icon-only button, which has no text to read. */
+    accessibilityLabel?: string
     onPress: () => void
     color?: string
     disabled?: boolean
     disabledColor?: string
+    /**
+     * Swaps the label for a spinner and blocks presses. Kept on the button rather than
+     * behind an overlay so the wait is attached to the thing that was tapped.
+     */
+    loading?: boolean
 }
 
-export default function ActionButton({ text, onPress, color = colors.accent, disabled, disabledColor = colors.buttonDisabled }: Props) {
+export default function ActionButton({
+    text,
+    icon,
+    accessibilityLabel,
+    onPress,
+    color = colors.accent,
+    disabled,
+    disabledColor = colors.buttonDisabled,
+    loading,
+}: Props) {
+    const inactive = disabled || loading
+
     return (
-        <TouchableOpacity onPress={onPress} disabled={disabled} style={{ opacity: disabled ? 0.5 : 1 }} activeOpacity={0.7}>
+        <TouchableOpacity
+            onPress={onPress}
+            disabled={inactive}
+            style={{ opacity: inactive ? 0.5 : 1 }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? text}
+        >
             <View style={{
-                backgroundColor: disabled ? disabledColor : color,
+                backgroundColor: inactive ? disabledColor : color,
                 paddingVertical: spacing.sm,
                 paddingHorizontal: spacing.md,
                 borderRadius: 8,
                 ...shadows.card,
             }}>
-                <Text style={{
-                    color: colors.textPrimary,
-                    fontWeight: '600',
-                    ...typography.caption,
-                }}>{text}</Text>
+                {/* Kept in place while loading so the button holds its width instead of
+                    collapsing around the spinner. */}
+                <View style={{
+                    height: CONTENT_HEIGHT,
+                    opacity: loading ? 0 : 1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    {icon ? (
+                        <MaterialCommunityIcons
+                            name={icon}
+                            size={ICON_SIZE}
+                            color={colors.textPrimary}
+                            style={{ lineHeight: ICON_SIZE }}
+                        />
+                    ) : (
+                        <Text style={{
+                            color: colors.textPrimary,
+                            fontWeight: '600',
+                            ...typography.caption,
+                            lineHeight: CONTENT_HEIGHT,
+                        }}>{text}</Text>
+                    )}
+                </View>
+                {loading && (
+                    <View style={{
+                        ...StyleSheet.absoluteFillObject,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}>
+                        <ActivityIndicator size="small" color={colors.textPrimary} />
+                    </View>
+                )}
             </View>
         </TouchableOpacity>
     )

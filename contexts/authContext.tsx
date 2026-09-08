@@ -23,6 +23,8 @@ interface AuthContextType {
   loginLoading: boolean,
   /** True while the app is signing back in from stored credentials, at launch or after a 401. */
   reauthenticating: boolean,
+  /** Clears the stored session. Nothing server-side to revoke — the token is stateless. */
+  logout: () => Promise<void>,
   /** True only while the stored session is read off disk at launch. */
   restoring: boolean,
   /** Resolves true when the login succeeded, false when it failed (the failure is surfaced as a toast). */
@@ -104,6 +106,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     resetUnauthorizedGuard()
   }), [showToast])
 
+  /**
+   * Signs out on this device.
+   *
+   * There is no server call: the token carries its own expiry and nothing tracks
+   * sessions, so forgetting the credentials is the whole of it. They have to go, or the
+   * launch restore and the 401 recovery would sign straight back in.
+   */
+  const logout = async () => {
+    await clearStoredSession()
+    setUser(null)
+  }
+
   const attemptLogin = async (u: string, p: string) => {
     setLoading(true)
     try {
@@ -122,7 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, attemptLogin, loginLoading: loading, reauthenticating, restoring }}>
+    <AuthContext.Provider value={{ user, attemptLogin, loginLoading: loading, reauthenticating, restoring, logout }}>
       {children}
     </AuthContext.Provider>
   );

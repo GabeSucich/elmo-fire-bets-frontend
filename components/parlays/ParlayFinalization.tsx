@@ -1,5 +1,5 @@
 import { ParlayResponseData, ParlayResult, ParlaysService } from "@/api";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import Notice from "../reusable/Notice";
 import ActionButton from "../reusable/ActionButton";
@@ -42,8 +42,10 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
     } = useApiActionState(
         () => ParlaysService.finalizeParlayResult(parlay.id, {}),
         res => {
-            setFinalizedParlay(res.parlay),
+            setFinalizedParlay(res.parlay)
             setPossibleResults(res.possible_results)
+            // A single possible result is not a choice, so it is made rather than offered.
+            setSelectedResult(res.possible_results.length === 1 ? res.possible_results[0] : null)
         },
         setLoading,
         "There was an error computing parlay results"
@@ -64,12 +66,22 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
     )
 
 
-    function handleFinalizeParlay() {
-        setFinalizedParlay(null)
-        setPossibleResults([])
-        setSelectedResult(null)
-        finalizeParlay()
-    }
+    /**
+     * Computed as soon as the modal opens rather than behind a button.
+     *
+     * There is nothing to configure and only one thing to do here, so asking for a tap
+     * first was a step with no decision in it. Held in a ref because useApiActionState
+     * rebuilds `finalizeParlay` every render, which would otherwise re-run this.
+     */
+    const finalizeRef = useRef(finalizeParlay)
+    finalizeRef.current = finalizeParlay
+
+    const computed = useRef(false)
+    useEffect(() => {
+        if (!allPicksHaveResults || computed.current) return
+        computed.current = true
+        finalizeRef.current()
+    }, [allPicksHaveResults])
 
     if (!allPicksHaveResults) {
         return (
@@ -79,20 +91,20 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
 
     return (
         <View>
-            {loading && <OverlayLoader />}
-            <ParlayCard pickTileSize="xs" parlay={finalizedParlay || parlay} editable={false} hideFooter={true} disableResultEditing={true}/>
-            <View style={{alignItems: "flex-end", marginBottom: spacing.sm}}>
-                <ActionButton text="Compute Possible Results" onPress={handleFinalizeParlay} />
-            </View>
+            {loading && <OverlayLoader loaderProps={{ text: "Analyzing result..." }} />}
+            <ParlayCard pickTileSize="xs" parlay={finalizedParlay || parlay} editable={false} disableResultEditing={true}/>
             {
                 finalizedParlay && possibleResults.length > 0 && (
                     <View style={{alignContent: "center"}}>
-                        <Text style={{
-                            fontStyle: "italic",
-                            color: colors.textSecondary,
-                            marginBottom: spacing.sm,
-                            ...typography.body,
-                        }}>Possible results. Go back and edit picks if this does not look right.</Text>
+                        {possibleResults.length > 1 && (
+                            <Text style={{
+                                color: colors.textPrimary,
+                                fontWeight: '600',
+                                textAlign: 'center',
+                                marginBottom: spacing.sm,
+                                ...typography.heading,
+                            }}>Select the parlay result</Text>
+                        )}
                         <SelectableTileGroup<ParlayResult>
                             selectedItem={selectedResult}
                             items={possibleResults}

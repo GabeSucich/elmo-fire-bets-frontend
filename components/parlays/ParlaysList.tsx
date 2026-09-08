@@ -69,7 +69,11 @@ export default function ParlaysList(props: Props) {
                     const isLoading = parlayIsLoading(parlay.item.id)
                     return (
                         <View>
-                            <ParlayCard parlay={parlay.item} editable={props.editable} />
+                            <ParlayCard
+                                parlay={parlay.item}
+                                editable={props.editable}
+                                footer={<ParlayFooter parlay={parlay.item} />}
+                            />
                             {isLoading && (
                                 <OverlayLoader />
                             )}

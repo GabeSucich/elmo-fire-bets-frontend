@@ -1,10 +1,11 @@
+import React, { useState } from "react"
 import { PickResponseData, PicksService } from "@/api"
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch"
 import { CorrectionImageAnalysis, ReviewRowState } from "@/composables/useCorrectionImageAnalysis"
 import { useLoadingState } from "@/composables/useLoadingState"
 import { useToastContext } from "@/contexts/toastContext"
 import { colors, spacing, typography } from "@/theme/colors"
-import { ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { ScrollView, Text, View } from "react-native"
 import ActionButton from "../../reusable/ActionButton"
 import Notice from "../../reusable/Notice"
 import OverlayLoader from "../../reusable/OverlayLoader"
@@ -13,11 +14,16 @@ import CorrectionReviewRow from "./CorrectionReviewRow"
 
 type Props = {
     analysis: CorrectionImageAnalysis
-    onCorrectionsApplied: (picks: PickResponseData[]) => void
     onEditFully: (gamblerId: number) => void
-    /** Leaves the corrections view entirely, refreshing the parlay behind it. */
+    /** Leaves the adjustments view entirely, refreshing the parlay behind it. */
     onDone: () => void
-    onCorrectManually: () => void
+    /**
+     * Every adjustment saved. Distinct from onDone, which also fires when the view is
+     * simply closed — a caller that acts on completion must not act on abandonment.
+     */
+    onSubmitted?: () => void
+    /** Omitted when the flow is reached while locking, where the slip is the only route. */
+    onEnterManually?: () => void
 }
 
 export default function ImageCorrectionFlow(props: Props) {
@@ -27,6 +33,18 @@ export default function ImageCorrectionFlow(props: Props) {
     const {
         parlayId, phase, legs, statedLegCount, rows, analyze, updateRow, dropRows, reset,
     } = props.analysis
+
+    /** The picker takes a moment to appear; without this the tap looks like it did nothing. */
+    const [openingLibrary, setOpeningLibrary] = useState(false)
+
+    async function startAnalyze() {
+        setOpeningLibrary(true)
+        try {
+            await analyze()
+        } finally {
+            setOpeningLibrary(false)
+        }
+    }
 
     /** A row is ready when it will write something: a number, or a pick that does not exist yet. */
     function isReady(row: ReviewRowState) {
@@ -89,131 +107,150 @@ export default function ImageCorrectionFlow(props: Props) {
             }
         })
 
-        if (applied.length > 0) props.onCorrectionsApplied(applied)
-
         if (failedNames.length > 0) {
             // Successes stay applied; only the failures are left on screen to retry.
             dropRows(applied.map(pick => pick.gambler_id))
-            showToast(`Could not save corrections for ${failedNames.join(', ')}`)
+            showToast(`Could not save adjustments for ${failedNames.join(', ')}`)
             return
         }
 
         // Everything landed, so there is nothing left to do here. Closing refreshes the
-        // parlay underneath, which is where the corrections actually need to show up.
+        // parlay underneath, which is where the adjustments actually need to show up.
         reset()
+        props.onSubmitted?.()
         props.onDone()
     }
 
-    // The way out to the manual editor. Not offered mid-analysis, where leaving would
-    // discard work already in flight.
-    const manualLink = (
-        <View style={{ alignItems: 'flex-end', marginTop: spacing.lg }}>
-            <TouchableOpacity onPress={props.onCorrectManually}>
-                <Text style={{ ...typography.caption, color: colors.accent, fontWeight: '600' }}>
-                    Correct manually
-                </Text>
-            </TouchableOpacity>
-        </View>
+    // Opens the same review with empty rows rather than a separate editor. Not offered
+    // when locking, where the slip is the whole point. Neutral and inline: it is the
+    // alternative to the screenshot, not the way forward.
+    const manualButton = !props.onEnterManually ? null : (
+        <ActionButton
+            text="Enter manually"
+            onPress={props.onEnterManually}
+            color={colors.buttonSecondary}
+        />
     )
 
-    if (phase === 'extracting' || phase === 'matching') {
-        return <AnalysisProgress phase={phase} />
-    }
+    function renderPhase() {
+        if (phase === 'extracting' || phase === 'matching') {
+            return <AnalysisProgress />
+        }
 
-    if (phase !== 'review') {
-        return (
-            <View style={{ gap: spacing.md, paddingVertical: spacing.lg }}>
-                <Notice message="Upload one or more screenshots of the parlay slip and each pick will be matched to a bet line automatically." />
-                <View style={{ alignItems: 'center' }}>
-                    <ActionButton text="Choose screenshots" onPress={analyze} />
+        if (phase !== 'review') {
+            return (
+                <View style={{ gap: spacing.md, paddingVertical: spacing.lg }}>
+                    <Notice message="Upload one or more screenshots of the parlay slip and each pick will be matched to a bet line automatically." />
+                    {/* Centred as a pair rather than pushed to the edges: they are two choices
+                        of the same action, not opposing ends of the dialog. */}
+                    <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: spacing.md,
+                    }}>
+                        {manualButton}
+                        <ActionButton text="Add images" onPress={startAnalyze} loading={openingLibrary} />
+                    </View>
                 </View>
-                {manualLink}
+            )
+        }
+
+        const matchedCount = rows.filter(row => row.leg).length
+        const legsMissing = statedLegCount != null && statedLegCount > legs.length
+
+        const notReady = rows.filter(row => !isReady(row))
+        const missingPicks = notReady.filter(row => !row.pick)
+        const badNumbers = notReady.filter(row => row.pick)
+        const canApply = rows.length > 0 && notReady.length === 0
+
+        // Lines that were read off the slip but claimed by nobody. Showing them turns an
+        // unexplained "no match" into something diagnosable — usually the bet type was read
+        // differently from how the pick was recorded.
+        const claimedLegs = new Set(rows.map(row => row.leg?.leg_index).filter(index => index != null))
+        const unusedLegs = legs.filter(leg => !claimedLegs.has(leg.leg_index))
+
+        return (
+            <View style={{ gap: spacing.sm }}>
+                {loading && <OverlayLoader loaderProps={{ text: "Saving adjustments...", size: 20 }} />}
+
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                    Matched {matchedCount} of {rows.length} picks to a line on the slip.
+                </Text>
+
+                {legsMissing && (
+                    <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
+                        ⚠ The slip says it has {statedLegCount} legs but only {legs.length} were read. You may be missing a screenshot.
+                    </Text>
+                )}
+
+                {unusedLegs.length > 0 && (
+                    <View style={{ gap: spacing.xs }}>
+                        <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                            {unusedLegs.length === 1
+                                ? "1 line on the slip was not matched to anyone:"
+                                : `${unusedLegs.length} lines on the slip were not matched to anyone:`}
+                        </Text>
+                        {unusedLegs.map(leg => (
+                            <Text
+                                key={leg.leg_index}
+                                style={{ ...typography.caption, color: colors.textSecondary, fontStyle: 'italic' }}
+                            >
+                                · {leg.raw_text} {leg.prop_type ? `(read as ${leg.prop_type})` : '(bet type not recognized)'}
+                            </Text>
+                        ))}
+                    </View>
+                )}
+
+                <ScrollView style={{ maxHeight: 400 }} contentContainerStyle={{ gap: spacing.sm }}>
+                    {rows.map(row => (
+                        <CorrectionReviewRow
+                            key={row.gamblerId}
+                            row={row}
+                            onChangeValue={value => updateRow(row.gamblerId, { value })}
+                            onChangeSauce={sauceFactor => updateRow(row.gamblerId, { sauceFactor })}
+                            onEditFully={() => props.onEditFully(row.gamblerId)}
+                        />
+                    ))}
+                </ScrollView>
+
+                {missingPicks.length > 0 && (
+                    <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
+                        {missingPicks.map(row => row.gamblerName).join(', ')}
+                        {missingPicks.length === 1 ? ' has' : ' have'} no pick. Use "Add pick" before applying.
+                    </Text>
+                )}
+
+                {badNumbers.length > 0 && (
+                    <Text style={{ ...typography.caption, color: colors.danger, fontWeight: '600' }}>
+                        {badNumbers.map(row => row.gamblerName).join(', ')}
+                        {badNumbers.length === 1 ? ' needs' : ' need'} a number before this can be applied.
+                    </Text>
+                )}
+
+                {/* Set off from the rows above: the list runs right up to these, and a
+                    committing action needs a moment of space before it. */}
+                <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: spacing.lg,
+                }}>
+                    <ActionButton text="Start over" onPress={reset} color={colors.buttonSecondary} />
+                    <ActionButton
+                        text="Save slip"
+                        onPress={applyCorrections}
+                        disabled={!canApply}
+                    />
+                </View>
             </View>
         )
     }
 
-    const matchedCount = rows.filter(row => row.leg).length
-    const legsMissing = statedLegCount != null && statedLegCount > legs.length
-
-    const notReady = rows.filter(row => !isReady(row))
-    const missingPicks = notReady.filter(row => !row.pick)
-    const badNumbers = notReady.filter(row => row.pick)
-    const canApply = rows.length > 0 && notReady.length === 0
-
-    // Lines that were read off the slip but claimed by nobody. Showing them turns an
-    // unexplained "no match" into something diagnosable — usually the bet type was read
-    // differently from how the pick was recorded.
-    const claimedLegs = new Set(rows.map(row => row.leg?.leg_index).filter(index => index != null))
-    const unusedLegs = legs.filter(leg => !claimedLegs.has(leg.leg_index))
-
     return (
-        <View style={{ gap: spacing.sm }}>
-            {loading && <OverlayLoader loaderProps={{ text: "Saving corrections...", size: 20 }} />}
-
-            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-                Matched {matchedCount} of {rows.length} picks to a line on the slip.
-            </Text>
-
-            {legsMissing && (
-                <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
-                    ⚠ The slip says it has {statedLegCount} legs but only {legs.length} were read. You may be missing a screenshot.
-                </Text>
-            )}
-
-            {unusedLegs.length > 0 && (
-                <View style={{ gap: spacing.xs }}>
-                    <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-                        {unusedLegs.length === 1
-                            ? "1 line on the slip was not matched to anyone:"
-                            : `${unusedLegs.length} lines on the slip were not matched to anyone:`}
-                    </Text>
-                    {unusedLegs.map(leg => (
-                        <Text
-                            key={leg.leg_index}
-                            style={{ ...typography.caption, color: colors.textSecondary, fontStyle: 'italic' }}
-                        >
-                            · {leg.raw_text} {leg.prop_type ? `(read as ${leg.prop_type})` : '(bet type not recognized)'}
-                        </Text>
-                    ))}
-                </View>
-            )}
-
-            <ScrollView style={{ maxHeight: 400 }} contentContainerStyle={{ gap: spacing.sm }}>
-                {rows.map(row => (
-                    <CorrectionReviewRow
-                        key={row.gamblerId}
-                        row={row}
-                        onChangeValue={value => updateRow(row.gamblerId, { value })}
-                        onChangeSauce={sauceFactor => updateRow(row.gamblerId, { sauceFactor })}
-                        onEditFully={() => props.onEditFully(row.gamblerId)}
-                    />
-                ))}
-            </ScrollView>
-
-            {missingPicks.length > 0 && (
-                <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
-                    {missingPicks.map(row => row.gamblerName).join(', ')}
-                    {missingPicks.length === 1 ? ' has' : ' have'} no pick. Use "Add pick" before applying.
-                </Text>
-            )}
-
-            {badNumbers.length > 0 && (
-                <Text style={{ ...typography.caption, color: colors.danger, fontWeight: '600' }}>
-                    {badNumbers.map(row => row.gamblerName).join(', ')}
-                    {badNumbers.length === 1 ? ' needs' : ' need'} a number before this can be applied.
-                </Text>
-            )}
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <ActionButton text="Start over" onPress={reset} color={colors.buttonSecondary} />
-                <ActionButton
-                    text={`Apply ${rows.length} correction${rows.length === 1 ? '' : 's'}`}
-                    onPress={applyCorrections}
-                    disabled={!canApply}
-                />
-            </View>
-
-            {manualLink}
-        </View>
+        <>
+            {renderPhase()}
+        </>
     )
 }

@@ -89,6 +89,9 @@ export const typography = {
   },
 }
 
+/** Size for the small action icons that sit in card and row headers. */
+export const ACTION_ICON_SIZE = 19
+
 // Common spacing
 export const spacing = {
   xs: 4,

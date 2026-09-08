@@ -1,22 +1,14 @@
-import { AnalysisPhase } from "@/composables/useCorrectionImageAnalysis"
 import { View } from "react-native"
 import ActivityLoader from "../../reusable/ActivityLoader"
 
-type Props = {
-    phase: Extract<AnalysisPhase, 'extracting' | 'matching'>
-}
-
-const PHASE_TEXT: Record<Props['phase'], string> = {
-    extracting: "Analyzing slip",
-    matching: "Applying corrections",
-}
-
-export default function AnalysisProgress({ phase }: Props) {
+export default function AnalysisProgress() {
     return (
         // Fills the modal rather than sitting as a small step list, so the wait reads as
-        // the whole screen being busy.
+        // the whole screen being busy. One message across both phases: reading the slip and
+        // matching it to picks are one wait from the outside, and swapping the label
+        // mid-flight only drew attention to a boundary nobody cares about.
         <View style={{ minHeight: 340, justifyContent: 'center' }}>
-            <ActivityLoader text={PHASE_TEXT[phase]} />
+            <ActivityLoader text="Analyzing slip..." />
         </View>
     )
 }

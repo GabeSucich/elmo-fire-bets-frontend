@@ -5,6 +5,8 @@ import { Text, TouchableOpacity, View } from "react-native"
 import PickDisplay from "./PickDisplay"
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup"
 import { getBasicPickResultColor, sortedBasicPickResults } from "@/util/pickResults"
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
+import { PickDisplayUtil } from "@/util/picks"
 import OverlayLoader from "../reusable/OverlayLoader"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { useLoadingState } from "@/composables/useLoadingState"
@@ -14,6 +16,20 @@ import { colors, shadows, typography, spacing } from "@/theme/colors"
 type Props = {
     pick: PickResponseData
     onUpdated: (pick: PickResponseData) => void
+}
+
+/**
+ * Win and loss swap for a vetoed pick.
+ *
+ * The stored result is always the INITIAL pick's, and the backend derives the veto's
+ * outcome from it — a losing initial pick is a good veto. The editor now asks for the
+ * result of the pick as it stands after the veto, which is what the card shows, so the
+ * two have to be converted at both ends. Void and push are the same either way.
+ */
+function flipForVeto(result: BasicPickResult): BasicPickResult {
+    if (result === BasicPickResult.WIN) return BasicPickResult.LOSS
+    if (result === BasicPickResult.LOSS) return BasicPickResult.WIN
+    return result
 }
 
 function mapPickResult(pick: PickResponseData) {
@@ -41,13 +57,16 @@ export default function PickResultEditor(props: Props) {
         loading, setLoading
     } = useLoadingState()
 
-    const currentPickResult = mapPickResult(props.pick)
-    const [result, setResult] = useState<BasicPickResult | null>(currentPickResult)
-
     const {gamblers} = useGamblingSeasonContext()
 
+    const hasApprovedVeto = props.pick.veto?.approval_status === VetoApprovalStatus.APPROVED
     const gamblerFirstName = gamblers[props.pick.gambler_id].firstName
-    const title = `${gamblerFirstName}'s pick`
+    const vetoerFirstName = props.pick.veto?.gambler_id ? gamblers[props.pick.veto.gambler_id]?.firstName : null
+
+    const storedResult = mapPickResult(props.pick)
+    // What the buttons represent: the outcome of the pick as it is shown, veto applied.
+    const currentPickResult = storedResult && hasApprovedVeto ? flipForVeto(storedResult) : storedResult
+    const [result, setResult] = useState<BasicPickResult | null>(currentPickResult)
 
     function buttonEnabled() {
         return !!result && result !== currentPickResult
@@ -63,38 +82,41 @@ export default function PickResultEditor(props: Props) {
     )
 
     function handleSubmit() {
-        if (result) updateResult(result)
+        // Converted back to the initial pick's result, which is what the server stores.
+        if (result) updateResult(hasApprovedVeto ? flipForVeto(result) : result)
     }
-
-    const hasApprovedVeto = props.pick.veto?.approval_status === VetoApprovalStatus.APPROVED
-    const vetoerFirstName = props.pick.veto?.gambler_id ? gamblers[props.pick.veto.gambler_id]?.firstName : null
-    const vetoText = !hasApprovedVeto && vetoerFirstName ? null : (
-        `${gamblerFirstName} was vetoed successfuly by ${vetoerFirstName}. Enter the result for the INITIAL pick, not the vetoed pick.`
-    )
 
     return (
         <View>
             {loading && <OverlayLoader loaderProps={{text: "Updating result...", size: 20}} />}
-            <Text style={{
-                ...typography.heading,
-                color: colors.textPrimary,
-                alignSelf: "center",
-                marginVertical: spacing.sm,
-            }}>{title}</Text>
-            {
-                hasApprovedVeto && (
-                    <Text style={{
-                        fontStyle: "italic",
-                        color: colors.textSecondary,
-                        alignSelf: "center",
-                        marginVertical: spacing.sm,
-                        textAlign: 'center',
-                    }}>
-                        { vetoText }
-                    </Text>
-                )
-            }
-            <PickDisplay pick={props.pick} showVeto={false}/>
+            {/* Laid out exactly as the pick reads on the parlay card: target on the left
+                with the vetoer opposite it, then the bet with whose pick it is opposite that.
+                Naming the owner in a title as well was saying it twice. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{
+                    color: colors.textPrimary,
+                    ...typography.body,
+                    fontWeight: '600',
+                    flexShrink: 1,
+                }}>
+                    {PickDisplayUtil.playerTeamDisplay(props.pick)}
+                </Text>
+                {hasApprovedVeto && vetoerFirstName && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                        <MaterialCommunityIcons name="cancel" size={16} color={colors.danger} />
+                        <Text style={{ ...typography.body, color: colors.danger, fontWeight: '600' }}>
+                            {vetoerFirstName}
+                        </Text>
+                    </View>
+                )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <PickDisplay pick={props.pick} showTarget={false} />
+                <Text style={{ ...typography.body, color: colors.textSecondary }}>
+                    {gamblerFirstName}
+                </Text>
+            </View>
+
             <SelectableTileGroup<BasicPickResult>
                 selectedItem={result}
                 items={SORTED_RESULTS}
@@ -103,6 +125,7 @@ export default function PickResultEditor(props: Props) {
                 handleSelect={r => setResult(r)}
                 itemStyle={r => ({primaryColor: getBasicPickResultColor(r)})}
                 raiseSelection={false}
+                containerProps={{ alignItems: "center", marginTop: spacing.sm }}
             />
             <View style={{ height: 1, backgroundColor: colors.divider, marginVertical: spacing.lg }} />
 

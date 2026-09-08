@@ -35,7 +35,7 @@ export default function PickResultEditorModal({ visible, onClose, pick, onUpdate
                     ...shadows.modal,
                 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Edit Result</Text>
+                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Pick result</Text>
                         <Pressable onPress={onClose} style={{ padding: spacing.xs }}>
                             <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
                         </Pressable>

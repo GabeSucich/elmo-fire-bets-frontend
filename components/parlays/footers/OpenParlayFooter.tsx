@@ -41,7 +41,10 @@ export default function OpenParlayFooter({ parlay }: Props) {
 
     const picksWithoutResultsCnt = parlay.picks.filter(p => !p.result).length
 
-    const addCorrectionsText = `Add Corrections${uncorrectedPickCnt > 0 ? " (" + uncorrectedPickCnt.toString() + ")" : ''}`
+    // The button says whether there is anything left to enter; a count of how many said
+    // the same thing twice, and the tabs below already flag who is outstanding.
+    const slipOutstanding = uncorrectedPickCnt > 0
+    const slipText = slipOutstanding ? "Add Slip" : "Update Slip"
 
     function unlockParlay() {
         contextUnlockParlay(parlay.id, () => {
@@ -56,10 +59,21 @@ export default function OpenParlayFooter({ parlay }: Props) {
     if (isMyOwnedParlay) {
         return (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, flexWrap: 'wrap', gap: spacing.sm }}>
-                <ActionButton text="Unlock" onPress={() => setUnlockVisible(true)} color={colors.warning} />
+                {/* An icon rather than a label, but still a filled button. The confirmation
+                    names the action and spells out what it undoes. */}
+                <ActionButton
+                    icon="lock-open-variant-outline"
+                    accessibilityLabel="Unlock lay"
+                    onPress={() => setUnlockVisible(true)}
+                    color={colors.warning}
+                />
 
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginLeft: 'auto' }}>
-                    <ActionButton text={addCorrectionsText} onPress={() => setPickCorrectionVisible(true)} color={uncorrectedPickCnt > 0 ? colors.danger : colors.accent} />
+                    <ActionButton
+                        text={slipText}
+                        onPress={() => setPickCorrectionVisible(true)}
+                        color={slipOutstanding ? colors.accent : colors.buttonSecondary}
+                    />
                     <ActionButton text="Finalize Result" onPress={() => setFinalizationVisible(true)} disabled={picksWithoutResultsCnt > 0 || uncorrectedPickCnt > 0} />
                 </View>
 

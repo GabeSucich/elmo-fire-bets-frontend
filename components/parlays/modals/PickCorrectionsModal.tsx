@@ -10,15 +10,19 @@ type Props = {
     visible: boolean
     dismissModal: () => void
     parlay: ParlayResponseData
+    /** Reached from locking: the slip is the only route, and finishing locks the parlay. */
+    locking?: boolean
+    /** Fired only when adjustments were actually saved, never on a plain dismissal. */
+    onSubmitted?: () => void
 }
 
-export default function PickCorrectionsModal({ visible, dismissModal, parlay }: Props) {
+export default function PickCorrectionsModal({ visible, dismissModal, parlay, locking, onSubmitted }: Props) {
     const { refreshParlay } = useParlaysContext()
 
     /**
-     * Corrections are written straight to the server, but the parlay behind this modal is
-     * still holding its pre-correction picks. Every way out has to refresh it — the X and
-     * the hardware back gesture used to dismiss directly, which is why a correction only
+     * Adjustments are written straight to the server, but the parlay behind this modal is
+     * still holding its pre-adjustment picks. Every way out has to refresh it — the X and
+     * the hardware back gesture used to dismiss directly, which is why an adjustment only
      * showed up after reloading the parlay view.
      */
     function onPickCorrectionDone() {
@@ -49,13 +53,18 @@ export default function PickCorrectionsModal({ visible, dismissModal, parlay }: 
                     ...shadows.modal,
                 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Pick Corrections</Text>
+                        <Text style={{ ...typography.title, color: colors.textPrimary }}>{locking ? "Parlay Slip" : "Pick Adjustments"}</Text>
                         <Pressable onPress={onPickCorrectionDone} style={{ padding: spacing.xs }}>
                             <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
                         </Pressable>
                     </View>
                     <ScrollView style={{ width: '100%' }}>
-                        <ParlayPickCorrections parlay={parlay} onDone={onPickCorrectionDone}/>
+                        <ParlayPickCorrections
+                            parlay={parlay}
+                            onDone={onPickCorrectionDone}
+                            onSubmitted={onSubmitted}
+                            locking={locking}
+                        />
                     </ScrollView>
                 </View>
             </View>

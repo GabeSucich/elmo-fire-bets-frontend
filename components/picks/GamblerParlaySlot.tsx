@@ -9,7 +9,7 @@ import PickEditorModal from "./modals/PickEditorModal"
 import PickVetoModal from "./modals/PickVetoModal"
 import VetoStatusModal from "./modals/VetoStatusModal"
 import PickResultEditorModal from "./modals/PickResultEditorModal"
-import { PickResultColors, VetoResultColors } from "@/util/pickResults"
+import { PickResultColors, VetoResultColors, vetoResultDisplay } from "@/util/pickResults"
 import { TileSize } from "../reusable/tiles/common"
 import EntotypeIcon from 'react-native-vector-icons/Entypo'
 import FeatherIcon from 'react-native-vector-icons/Feather'
@@ -125,7 +125,10 @@ export default function GamblerParlaySlot(props: Props) {
                 const vetoer = gamblers[pick.veto.gambler_id].firstName
                 return {text: `${vetoer} ${pick.veto.result}`, color: VetoResultColors[pick.veto.result]}
             }
-            return {text: pick.veto.result, color: VetoResultColors[pick.veto.result]}
+            return {
+                text: vetoResultDisplay(pick.veto.result),
+                color: VetoResultColors[pick.veto.result],
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 import { SauceFactor } from "@/api"
 import { ReviewRowState } from "@/composables/useCorrectionImageAnalysis"
-import { colors, spacing, typography } from "@/theme/colors"
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
+import { ACTION_ICON_SIZE, colors, spacing, typography } from "@/theme/colors"
 import { playerTeamDisplay } from "@/util/executePlayerSearch"
 import { PickDisplayUtil, SAUCE_EMOJI } from "@/util/picks"
 import { Pressable, Text, TextInput, TouchableOpacity, View } from "react-native"
@@ -93,10 +94,26 @@ export default function CorrectionReviewRow({ row, onChangeValue, onEditFully, o
                 <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: '600' }}>
                     {gamblerName}
                 </Text>
-                <TouchableOpacity onPress={onEditFully}>
-                    <Text style={{ ...typography.caption, color: colors.accent, fontWeight: '600' }}>
-                        {pick || edit ? "Edit more" : "Add pick"}
-                    </Text>
+                {/* The same pencil the parlay card uses for editing, so the affordance means
+                    one thing across the app. A row with no pick still needs words: an icon
+                    cannot say "there is nothing here yet". */}
+                <TouchableOpacity
+                    onPress={onEditFully}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={pick || edit ? `Edit ${gamblerName}'s pick` : `Add a pick for ${gamblerName}`}
+                >
+                    {pick || edit ? (
+                        <MaterialCommunityIcons
+                            name="square-edit-outline"
+                            size={ACTION_ICON_SIZE}
+                            color={colors.accent}
+                        />
+                    ) : (
+                        <Text style={{ ...typography.caption, color: colors.accent, fontWeight: '600' }}>
+                            Add pick
+                        </Text>
+                    )}
                 </TouchableOpacity>
             </View>
 
@@ -169,10 +186,9 @@ export default function CorrectionReviewRow({ row, onChangeValue, onEditFully, o
             )}
 
             {!missingPick && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <Text style={{ ...typography.caption, color: colors.textSecondary }}>Sauce</Text>
-                    {/* Shown on edited rows too: the staged summary says nothing about sauce,
-                        so without this an override would hide whether a pick is spicy. */}
+                /* Shown on edited rows too: the staged summary says nothing about sauce, so
+                   without this an override would hide whether a pick is designated. */
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
                     <SauceToggle
                         value={sauce}
                         onChange={next => onChangeSauce(sauce === next ? null : next)}

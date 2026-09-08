@@ -65,6 +65,10 @@ export default function SeasonView() {
         <GamblingSeasonProvider gamblingSeason={gamblingSeason}>
             <PerformancesProvider seasonId={seasonId}>
             <Tab.Navigator
+                // Back returns to the tab you came from rather than jumping to Parlays.
+                // Only reaches the system back gesture and the Android hardware button —
+                // the header chevron belongs to the stack above and always leaves the season.
+                backBehavior="history"
                 screenOptions={{
                     tabBarStyle: {
                         backgroundColor: colors.backgroundSecondary,

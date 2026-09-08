@@ -1,5 +1,5 @@
 import React from "react"
-import { Text, View } from "react-native"
+import { Pressable, Text, View } from "react-native"
 import AppModal from "@/components/reusable/AppModal"
 import ActionButton from "../../reusable/ActionButton"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
@@ -7,10 +7,13 @@ import { colors, shadows, spacing, typography } from "@/theme/colors"
 type Props = {
     visible: boolean
     onCancel: () => void
-    onConfirm: () => void
+    /** Adds the slip first; locking happens once those adjustments are submitted. */
+    onAddSlip: () => void
+    /** Locks now and leaves the slip for later. */
+    onLockWithoutSlip: () => void
 }
 
-export default function LockConfirmModal({ visible, onCancel, onConfirm }: Props) {
+export default function LockConfirmModal({ visible, onCancel, onAddSlip, onLockWithoutSlip }: Props) {
     return (
         <AppModal
             visible={visible}
@@ -34,14 +37,28 @@ export default function LockConfirmModal({ visible, onCancel, onConfirm }: Props
                     borderColor: colors.cardBorder,
                     ...shadows.modal,
                 }}>
-                    <Text style={{
-                        ...typography.heading,
-                        color: colors.textPrimary,
-                        marginBottom: spacing.md,
-                        textAlign: 'center',
-                    }}>
-                        Ready to lock?
-                    </Text>
+                    {/* Dismissal sits in the corner like the other modals, so the actions
+                        below are the three things you might actually want to do. */}
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', width: '100%' }}>
+                        <Text style={{
+                            ...typography.heading,
+                            color: colors.textPrimary,
+                            marginBottom: spacing.md,
+                            textAlign: 'center',
+                            flex: 1,
+                        }}>
+                            Ready to lock?
+                        </Text>
+                        <Pressable
+                            onPress={onCancel}
+                            style={{ padding: spacing.xs, marginTop: -spacing.xs }}
+                            hitSlop={8}
+                            accessibilityRole="button"
+                            accessibilityLabel="Close"
+                        >
+                            <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
+                        </Pressable>
+                    </View>
                     <Text style={{
                         ...typography.body,
                         color: colors.textSecondary,
@@ -49,11 +66,18 @@ export default function LockConfirmModal({ visible, onCancel, onConfirm }: Props
                         marginBottom: spacing.xl,
                         textAlign: 'center',
                     }}>
-                        Are you sure you want to lock in this lay? This will not allow any other gamblers to edit their picks, and you will be responsible for entering all corrected bets and lines after placing.{"\n\n"}Ownership may be claimed by another gambler.
+                        Locking stops other gamblers editing their picks, and makes you responsible for entering the bets and lines as they were actually placed.
                     </Text>
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md }}>
-                        <ActionButton text="Cancel" onPress={onCancel} color={colors.buttonSecondary} />
-                        <ActionButton text="Lock parlay" onPress={onConfirm} />
+                    {/* Adding the slip is the path worth taking, so it carries the accent and
+                        the alternatives sit neutral beside it. */}
+                    <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap',
+                        gap: spacing.sm,
+                    }}>
+                        <ActionButton text="Add slip later" onPress={onLockWithoutSlip} color={colors.buttonSecondary} />
+                        <ActionButton text="Add parlay slip" onPress={onAddSlip} />
                     </View>
                 </View>
             </View>

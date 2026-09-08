@@ -3,6 +3,7 @@ import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import React, { useState } from "react";
 import { View } from "react-native";
 import LockConfirmModal from "../modals/LockConfirmModal";
+import PickCorrectionsModal from "../modals/PickCorrectionsModal";
 import ClaimConfirmModal from "../modals/ClaimConfirmModal";
 import PendingVetoConfirmModal from "../modals/PendingVetoConfirmModal";
 import ActionButton from "../../reusable/ActionButton";
@@ -15,6 +16,7 @@ type Props = {
 
 export default function BuildingParlayFooter({ parlay }: Props) {
     const [lockConfirmVisible, setLockConfirmVisible] = useState(false)
+    const [slipVisible, setSlipVisible] = useState(false)
     const [vetoConfirmVisible, setVetoConfirmVisible] = useState(false)
     const [claimConfirmVisible, setClaimConfirmVisible] = useState(false)
 
@@ -39,8 +41,11 @@ export default function BuildingParlayFooter({ parlay }: Props) {
         })
     }
 
-    function handleLockConfirm() {
-        setLockConfirmVisible(false)
+    /**
+     * Locking runs the same way whether the slip was added first or deferred; a pending
+     * veto still has to be settled before either can proceed.
+     */
+    function proceedToLock() {
         if (hasPendingVeto()) {
             setVetoConfirmVisible(true)
         } else {
@@ -48,17 +53,54 @@ export default function BuildingParlayFooter({ parlay }: Props) {
         }
     }
 
+    function handleAddSlip() {
+        setLockConfirmVisible(false)
+        setSlipVisible(true)
+    }
+
+    function handleLockWithoutSlip() {
+        setLockConfirmVisible(false)
+        proceedToLock()
+    }
+
+    /**
+     * The slip flow was entered to lock, so submitting it does what the lock button would
+     * have: the adjustments are already saved, and the lay moves on to Open.
+     *
+     * Only submission locks. Backing out with the X leaves the lay in Building, because
+     * closing a dialog should not commit the thing it was asking about.
+     */
+    function handleSlipSubmitted() {
+        setSlipVisible(false)
+        proceedToLock()
+    }
+
     if (parlay.state !== ParlayState.BUILDING) return null
 
     if (isMyOwnedParlay) {
         return (
             <View style={{ alignItems: 'flex-end', marginTop: spacing.md }}>
-                <ActionButton text="Lock Lay" onPress={() => setLockConfirmVisible(true)} />
+                {/* An icon rather than a label, but still a filled button: it is the primary
+                    action on a building lay, and the confirmation names it. */}
+                <ActionButton
+                    icon="lock-outline"
+                    accessibilityLabel="Lock lay"
+                    onPress={() => setLockConfirmVisible(true)}
+                />
 
                 <LockConfirmModal
                     visible={lockConfirmVisible}
                     onCancel={() => setLockConfirmVisible(false)}
-                    onConfirm={handleLockConfirm}
+                    onAddSlip={handleAddSlip}
+                    onLockWithoutSlip={handleLockWithoutSlip}
+                />
+
+                <PickCorrectionsModal
+                    visible={slipVisible}
+                    parlay={parlay}
+                    locking={true}
+                    dismissModal={() => setSlipVisible(false)}
+                    onSubmitted={handleSlipSubmitted}
                 />
 
                 {pendingVeto() && (
