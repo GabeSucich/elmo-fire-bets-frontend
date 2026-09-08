@@ -32,22 +32,18 @@ export default function BanListAlert({ gamblerName, placement, isOwnPick }: Prop
 
     return (
         <>
+            {/* Just the mark, sitting with the bet it is about. A labelled banner on its own
+                row said the same thing at several times the weight, and a parlay can carry
+                one of these per gambler — five of them stacked down a card drowned out the
+                picks themselves. What it means is one tap away. */}
             <TouchableOpacity
                 onPress={() => setVisible(true)}
-                style={{
-                    alignSelf: 'flex-end',
-                    marginTop: spacing.xs,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs,
-                }}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Ban list alert for ${gamblerName}`}
                 activeOpacity={0.7}
             >
-                <MaterialCommunityIcons name="alert" size={14} color={colors.danger} />
-                <Text style={{ ...typography.caption, color: colors.danger, fontWeight: '700' }}>
-                    Ban List Alert
-                </Text>
-                <MaterialCommunityIcons name="alert" size={14} color={colors.danger} />
+                <MaterialCommunityIcons name="alert" size={16} color={colors.danger} />
             </TouchableOpacity>
 
             <AppModal

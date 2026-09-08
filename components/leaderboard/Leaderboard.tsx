@@ -210,15 +210,25 @@ function SlateStats({ metrics }: { metrics: ScoredMetrics }) {
                 </View>
             )}
             <View style={styles.metricRow}>
-                <Text style={styles.metricLabel}>🌶️ Spicy Win %</Text>
-                <Text style={styles.metricValue}>{metrics.sauce_factor.spicy.win_rate?.toFixed(1) ?? '—'}%</Text>
-            </View>
-            <View style={styles.metricRow}>
                 <Text style={styles.metricLabel}>💩 Bitch Losses</Text>
                 <Text style={metrics.sauce_factor.bitch.losses > 0 ? styles.metricValueBad : styles.metricValue}>
                     {metrics.sauce_factor.bitch.losses}
                 </Text>
             </View>
+            {/* Last, and only once there is a rate to show. Nobody has taken a spicy pick
+                until they have, and "—%" is a row that says nothing while taking up as much
+                room as one that does.
+
+                Explicitly against null rather than truthy: a gambler who went spicy and lost
+                every one has a real 0% and should be shown it. */}
+            {metrics.sauce_factor.spicy.win_rate != null && (
+                <View style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>🌶️ Spicy Win %</Text>
+                    <Text style={styles.metricValue}>
+                        {metrics.sauce_factor.spicy.win_rate.toFixed(1)}%
+                    </Text>
+                </View>
+            )}
         </>
     )
 }

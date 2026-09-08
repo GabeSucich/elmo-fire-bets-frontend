@@ -1,4 +1,4 @@
-import { UpdateParlayRequestData } from "@/api";
+import { PickResponseData, UpdateParlayRequestData } from "@/api";
 import React, { createContext, useContext, ReactNode, useState } from "react";
 
 export type ParlayTab = "Building" | "Open" | "Closed" | "My Lays"
@@ -6,6 +6,7 @@ export type ParlayTab = "Building" | "Open" | "Closed" | "My Lays"
 interface ParlaysContextType {
     refreshParlays: () => void
     refreshParlay: (parlayId: number) => void
+    patchPick: (parlayId: number, pickId: number, change: (pick: PickResponseData) => PickResponseData) => void
     navToTab: (tab: ParlayTab) => void
     focusedParlayId: number | null
     setFocusedParlayId: (id: number | null) => void
@@ -25,6 +26,7 @@ interface ParlaysProviderProps {
     children: ReactNode
     refreshParlays: () => void
     refreshParlay: (parlayId: number) => void
+    patchPick: (parlayId: number, pickId: number, change: (pick: PickResponseData) => PickResponseData) => void
     navToTab: (tab: ParlayTab) => void
     swapParlays: (parlayId1: number, parlayId2: number) => void
     updateParlay: (request: UpdateParlayRequestData) => void
@@ -39,6 +41,7 @@ export function ParlaysProvider({
     children, 
     refreshParlays,
     refreshParlay,
+    patchPick,
     navToTab,
     swapParlays,
     updateParlay,
@@ -74,6 +77,7 @@ export function ParlaysProvider({
         value={{ 
             refreshParlays, 
             refreshParlay, 
+            patchPick,
             navToTab, 
             focusedParlayId, 
             setFocusedParlayId,

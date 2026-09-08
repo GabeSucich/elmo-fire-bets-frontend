@@ -18,6 +18,9 @@ import { PickDisplayUtil } from "@/util/picks"
 import { usePerformancesContext } from "@/contexts/performancesContext"
 import { findBanListEntry } from "@/util/trends"
 import BanListAlert from "./BanListAlert"
+import PickReactionBar from "./PickReactionBar"
+import PickThreadModal from "./modals/PickThreadModal"
+import { usePickReactions } from "@/composables/usePickSocial"
 
 
 type Props = {
@@ -63,7 +66,8 @@ export default function GamblerParlaySlot(props: Props) {
     } = useGamblingSeasonContext()
 
     const {
-        refreshParlay
+        refreshParlay,
+        patchPick
     } = useParlaysContext()
 
     const { performanceFor } = usePerformancesContext()
@@ -101,6 +105,21 @@ export default function GamblerParlaySlot(props: Props) {
     const [vetoModalVisible, setVetoModalVisible] = useState(false)
     const [vetoStatusVisible, setVetoStatusVisible] = useState(false)
     const [resultEditorVisible, setResultEditorVisible] = useState(false)
+    const [threadVisible, setThreadVisible] = useState(false)
+
+    // Building and Open take reactions and replies; a closed parlay is a record and shows
+    // what it collected without taking more. Mirrors the 409 the server would raise anyway.
+    const socialReadOnly = isClosed
+    // You can argue about your own pick but not react to it — the same reason you cannot
+    // vote for your own suggestion: everyone would back their own, so the chips would say
+    // nothing beyond who bothered. Rendering only, deliberately: the API still accepts it,
+    // and nothing here is load-bearing enough to be worth a guard on the server.
+    const isOwnPick = props.pick?.gambler_id === gamblerId
+    // Scoped to this slot's pick, so the drawer below never has to know its parlay.
+    function patchThisPick(change: (p: PickResponseData) => PickResponseData) {
+        if (props.pick) patchPick(parlayId, props.pick.id, change)
+    }
+    const reactions = usePickReactions(patchThisPick)
 
     function handlePickSaved() {
         setPickEditorVisible(false)
@@ -265,16 +284,26 @@ export default function GamblerParlaySlot(props: Props) {
                     </View>
                 ) : null}
             </View>
+            {/* The name sits level with the bet itself, not with the block under it: it
+                labels the pick, and the reactions below are a separate thing that happens
+                to belong to the same slot. */}
             <View style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: spacing.sm,
             }}>
-                <View style={{ flexShrink: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 1 }}>
                     { props.pick &&
                         <AnimatedPickDisplay pick={props.pick} size={props.pickTileSize} hidden={!!props.hidePickDisplay} />
                     }
+                    {banListPlacement && (
+                        <BanListAlert
+                            gamblerName={displayName}
+                            placement={banListPlacement}
+                            isOwnPick={isMyGambler}
+                        />
+                    )}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 0 }}>
                     {vetoedExtraInfo && (
@@ -291,11 +320,24 @@ export default function GamblerParlaySlot(props: Props) {
                     }}>{displayName}</Text>
                 </View>
             </View>
-            {banListPlacement && (
-                <BanListAlert
+            {props.pick && !props.hidePickDisplay && (
+                <PickReactionBar
+                    reactions={props.pick.reactions}
+                    commentCount={props.pick.comment_count}
+                    readOnly={socialReadOnly}
+                    isOwnPick={isOwnPick}
+                    onToggle={emoji => reactions.toggle(props.pick!.id, emoji)}
+                    onOpenThread={() => setThreadVisible(true)}
+                />
+            )}
+            {props.pick && threadVisible && (
+                <PickThreadModal
+                    pick={props.pick}
                     gamblerName={displayName}
-                    placement={banListPlacement}
-                    isOwnPick={isMyGambler}
+                    readOnly={socialReadOnly}
+                    isOwnPick={isOwnPick}
+                    onClose={() => setThreadVisible(false)}
+                    patchPick={patchThisPick}
                 />
             )}
             <PickEditorModal

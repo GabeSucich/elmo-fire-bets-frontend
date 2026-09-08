@@ -1,4 +1,4 @@
-import { GamblingSeasonService, GetSeasonParlaysResponseData, ParlayState, ParlayResponseData, ParlaysService, GetSeasonParlaysSortParam, UpdateParlayRequestData } from "@/api"
+import { GamblingSeasonService, GetSeasonParlaysResponseData, ParlayState, ParlayResponseData, ParlaysService, GetSeasonParlaysSortParam, PickResponseData, UpdateParlayRequestData } from "@/api"
 import { setApiErrorMsg } from "@/util/error"
 import { useEffect, useRef, useState } from "react"
 import { useToastContext } from "@/contexts/toastContext"
@@ -77,6 +77,26 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
             parlayIds.forEach(id => updateParlayLoadingState(id, false))
             setApiErrorMsg(e, message => showToast(message), defaultMessage)
         }
+    }
+
+    /**
+     * Change one pick in place, without a round trip.
+     *
+     * Reactions and reply counts are the writes whose new value comes back with the
+     * response, so refreshParlay would only re-fetch a parlay to learn what it already
+     * knows — and would raise that row's spinner over a chip tap while it did.
+     *
+     * Everything showing a pick reads it from here, so one call moves the chips on the
+     * card and the chips in the open drawer together: they are the same object.
+     */
+    function patchPick(parlayId: number, pickId: number, change: (pick: PickResponseData) => PickResponseData) {
+        setParlays(prev => prev.map(parlay => {
+            if (parlay.id !== parlayId) return parlay
+            return {
+                ...parlay,
+                picks: parlay.picks.map(pick => pick.id === pickId ? change(pick) : pick),
+            }
+        }))
     }
 
     function refreshParlay(parlayId: number) {
@@ -186,6 +206,7 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
         parlaysLoading,
         refreshParlays,
         refreshParlay,
+        patchPick,
         deleteParlay,
         claimParlay,
         updateParlay,

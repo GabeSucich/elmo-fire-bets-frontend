@@ -16,6 +16,8 @@ export interface GamblingSeasonContextType {
     state: GamblingSeasonState
     gamblers: Record<number, Gambler>
     sortedGamblers: Gambler[]
+    /** The emoji a pick can be reacted with, as the server defines them. */
+    reactionPalette: string[]
 }
 
 const GamblingSeasonContext = createContext<GamblingSeasonContextType | null>(null)
@@ -41,7 +43,8 @@ export function GamblingSeasonProvider(props: GamblingSeasonProviderProps) {
             state: props.gamblingSeason.state,
             name: props.gamblingSeason.name,
             gamblers,
-            sortedGamblers
+            sortedGamblers,
+            reactionPalette: props.gamblingSeason.reaction_palette
         }}>{ props.children }</GamblingSeasonContext.Provider>
     )
 }

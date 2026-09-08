@@ -4,7 +4,7 @@ import { View, TouchableOpacity, StyleSheet } from "react-native"
 import ParlayTabButtons from "@/components/reusable/TabButtons"
 import OverlayLoader from "@/components/reusable/OverlayLoader"
 import ParlaysList from "@/components/parlays/ParlaysList"
-import { GetSeasonParlaysSortParam, ParlayState, UpdateParlayRequestData } from "@/api"
+import { GetSeasonParlaysSortParam, ParlayState, PickResponseData, UpdateParlayRequestData } from "@/api"
 import { ParlaysProvider } from "@/contexts/parlaysContext"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import Ionicons from "react-native-vector-icons/Ionicons"
@@ -32,6 +32,7 @@ export default function ParlaysView(props: Props) {
         parlaysLoading: buildingLoading,
         refreshParlays: refreshBuildingParlays,
         refreshParlay: refreshBuildingParlay,
+        patchPick: patchBuildingPick,
         parlayLoadingStates: buildingParlayLoadingStates,
         swapParlays: swapBuildingParlays,
         deleteParlay: deleteBuildingParlay,
@@ -50,6 +51,7 @@ export default function ParlaysView(props: Props) {
         refreshParlays: refreshOpenParlays,
         parlayLoadingStates: openParlayLoadingStates,
         refreshParlay: refreshOpenParlay,
+        patchPick: patchOpenPick,
         deleteParlay: deleteOpenParlay,
         claimParlay: claimOpenParlay,
         updateParlay: updateOpenParlay,
@@ -66,6 +68,7 @@ export default function ParlaysView(props: Props) {
         refreshParlays: refreshClosedParlays,
         parlayLoadingStates: closedParlayLoadingStates,
         refreshParlay: refreshClosedParlay,
+        patchPick: patchClosedPick,
         deleteParlay: deleteClosedParlay,
         claimParlay: claimClosedParlay,
         updateParlay: updateClosedParlay,
@@ -146,6 +149,14 @@ export default function ParlaysView(props: Props) {
         }
     }
 
+    function patchPick(parlayId: number, pickId: number, change: (pick: PickResponseData) => PickResponseData) {
+        // My Lays is a filtered view of the open list rather than a list of its own, so it
+        // is covered by the open branch and needs no case here.
+        if (buildingParlays.some(p => p.id === parlayId)) return patchBuildingPick(parlayId, pickId, change)
+        if (openParlays.some(p => p.id === parlayId)) return patchOpenPick(parlayId, pickId, change)
+        if (closedParlays.some(p => p.id === parlayId)) return patchClosedPick(parlayId, pickId, change)
+    }
+
     function claimParlay(parlayId: number, gamblerId: number) {
         if (buildingParlays.some(p => p.id === parlayId)) return claimBuildingParlay(parlayId, gamblerId)
         if (openParlays.some(p => p.id === parlayId)) return claimOpenParlay(parlayId, gamblerId)
@@ -186,6 +197,7 @@ export default function ParlaysView(props: Props) {
         <ParlaysProvider
             refreshParlays={refreshAllParlays}
             refreshParlay={refreshParlay}
+            patchPick={patchPick}
             navToTab={setActiveTab}
             swapParlays={swapBuildingParlays}
             updateParlay={updateParlay}

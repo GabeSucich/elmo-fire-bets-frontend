@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { PickReactionResponseData } from './PickReactionResponseData';
 import type { PickResult } from './PickResult';
 import type { PickVetoResponseData } from './PickVetoResponseData';
 import type { PropBetDirection } from './PropBetDirection';
@@ -19,5 +20,7 @@ export type PickResponseData = {
     veto: (PickVetoResponseData | null);
     prop_bet_target: PropBetTargetResponseData;
     prop_type: PropBetType;
+    reactions: Array<PickReactionResponseData>;
+    comment_count: number;
 };
 

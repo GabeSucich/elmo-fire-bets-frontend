@@ -1,15 +1,17 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
-    ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform,
-    Pressable, ScrollView, Text, TextInput, View, useWindowDimensions,
+    Keyboard, KeyboardAvoidingView, Platform, Pressable, Text, View,
 } from "react-native"
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
-import { FeedbackCommentResponseData, FeedbackResponseData, FeedbackStatus } from "@/api"
+import { FeedbackResponseData, FeedbackStatus } from "@/api"
 import AppModal from "@/components/reusable/AppModal"
 import OverlayLoader from "@/components/reusable/OverlayLoader"
+import IconAction from "@/components/reusable/IconAction"
+import CommentThread from "@/components/comments/CommentThread"
+import ConfirmDelete from "@/components/comments/ConfirmDelete"
 import { useFeedbackComments, useFeedbackVoters } from "@/composables/useFeedback"
 import { relativeTime } from "@/util/relativeTime"
-import { ACTION_ICON_SIZE, colors, shadows, spacing, typography } from "@/theme/colors"
+import { colors, shadows, spacing, typography } from "@/theme/colors"
 import VoteControl, { VoteDirection } from "./VoteControl"
 import { STATUS_STYLE, isSettled } from "./status"
 
@@ -25,22 +27,6 @@ type Props = {
     onSetStatus: (status: FeedbackStatus) => void
     /** Keeps the card's reply count right without re-fetching the list. */
     onCommentCount: (count: number) => void
-}
-
-function IconAction({ icon, label, color, onPress }: {
-    icon: string, label: string, color: string, onPress: () => void
-}) {
-    return (
-        <Pressable
-            onPress={onPress}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={label}
-            style={{ padding: spacing.xs }}
-        >
-            <MaterialCommunityIcons name={icon} size={ACTION_ICON_SIZE} color={color} />
-        </Pressable>
-    )
 }
 
 function StatusChip({ label, icon, color, onPress }: {
@@ -60,96 +46,6 @@ function StatusChip({ label, icon, color, onPress }: {
             <MaterialCommunityIcons name={icon} size={14} color={color} />
             <Text style={{ ...typography.caption, color }}>{label}</Text>
         </Pressable>
-    )
-}
-
-/** How much of the screen the replies may take before they start scrolling. */
-const REPLIES_MAX_SHARE = 0.38
-
-/** A two-tap delete, in place. Losing a suggestion or a reply to one stray tap is not worth it. */
-function ConfirmDelete({ onConfirm, onCancel }: { onConfirm: () => void, onCancel: () => void }) {
-    return (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-            <Text style={{ ...typography.caption, color: colors.textSecondary }}>Delete?</Text>
-            <Pressable onPress={onCancel} hitSlop={8}>
-                <Text style={{ ...typography.caption, color: colors.textSecondary }}>Cancel</Text>
-            </Pressable>
-            <Pressable onPress={onConfirm} hitSlop={8}>
-                <Text style={{ ...typography.caption, color: colors.danger, fontWeight: "600" }}>Delete</Text>
-            </Pressable>
-        </View>
-    )
-}
-
-function Reply({ comment, readOnly, pending, onEdited }: {
-    comment: FeedbackCommentResponseData
-    readOnly: boolean
-    pending: boolean
-    onEdited: (text: string, done: () => void) => void
-}) {
-    const [editing, setEditing] = useState(false)
-    const [text, setText] = useState(comment.comment)
-
-    return (
-        <View style={{
-            paddingVertical: spacing.md,
-            borderTopWidth: 1,
-            borderTopColor: colors.divider,
-        }}>
-            {pending && <OverlayLoader loaderProps={{ size: 18 }} />}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                <Text style={{ ...typography.caption, color: colors.textPrimary, fontWeight: "600" }}>
-                    {comment.author_name}
-                </Text>
-                <Text style={{ ...typography.small, color: colors.textMuted }}>
-                    {relativeTime(comment.created_at)}
-                </Text>
-                <View style={{ flex: 1 }} />
-                {/* Editable but not deletable: a reply someone has already answered
-                    should not be able to vanish out from under the thread. */}
-                {comment.viewer_is_author && !readOnly && !editing && (
-                    <IconAction
-                        icon="square-edit-outline" label="Edit reply"
-                        color={colors.textSecondary}
-                        onPress={() => { setText(comment.comment); setEditing(true) }}
-                    />
-                )}
-            </View>
-
-            {editing ? (
-                <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-                    <TextInput
-                        value={text}
-                        onChangeText={setText}
-                        multiline
-                        textAlignVertical="top"
-                        style={{
-                            borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10,
-                            paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-                            color: colors.textPrimary, backgroundColor: colors.inputBackground,
-                            minHeight: 64, ...typography.body,
-                        }}
-                    />
-                    <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: spacing.md }}>
-                        <Pressable onPress={() => setEditing(false)} hitSlop={8}>
-                            <Text style={{ ...typography.caption, color: colors.textSecondary }}>Cancel</Text>
-                        </Pressable>
-                        <Pressable
-                            // Closed by the callback rather than here, so a failed save
-                            // keeps the edit open with what was typed in it.
-                            onPress={() => text.trim() && onEdited(text.trim(), () => setEditing(false))}
-                            hitSlop={8}
-                        >
-                            <Text style={{ ...typography.caption, color: colors.accent, fontWeight: "600" }}>Save</Text>
-                        </Pressable>
-                    </View>
-                </View>
-            ) : (
-                <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: spacing.xs }}>
-                    {comment.comment}
-                </Text>
-            )}
-        </View>
     )
 }
 
@@ -181,28 +77,18 @@ function VoterRow({ icon, color, names }: { icon: string, color: string, names: 
  */
 export default function FeedbackDetailModal(props: Props) {
     const { feedback, viewerIsAdmin } = props
-    const { height: windowHeight } = useWindowDimensions()
-    const replies = useRef<ScrollView>(null)
-    // Which suggestion the opening jump has already been done for, so it happens once on
-    // the way in and never again while you are reading.
-    const jumpedFor = useRef<number | null>(null)
-    // Armed when a reply of your own lands, so the next growth follows it down.
-    const followNewReply = useRef(false)
     const comments = useFeedbackComments(feedback?.id ?? null)
     // Re-fetched when the tally moves, so the names never disagree with the number.
     const { voters } = useFeedbackVoters(feedback?.id ?? null, feedback?.score ?? 0)
-    const [reply, setReply] = useState("")
     const [confirmingDelete, setConfirmingDelete] = useState(false)
 
     const status = STATUS_STYLE[feedback?.status ?? FeedbackStatus.OPEN]
     const readOnly = feedback ? isSettled(feedback.status) : false
-    // A new reply is the one write with no row of its own; editing or deleting a reply
-    // shows its spinner over that reply instead, so the send button stays still.
-    const posting = comments.saving && comments.pendingId === null
 
     // The list is told the real count as soon as the replies are in, so the card is right
     // by the time this closes. Gated on the replies having actually arrived for *this*
-    // suggestion — the empty array they start as would otherwise blank a good count.
+    // suggestion — the empty array they start as would otherwise blank a good count. Also
+    // keeps the count honest as replies stream in behind the open sheet.
     useEffect(() => {
         if (feedback && comments.loadedId === feedback.id) {
             props.onCommentCount(comments.comments.length)
@@ -210,9 +96,7 @@ export default function FeedbackDetailModal(props: Props) {
     }, [comments.comments.length, comments.loadedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        setReply("")
         setConfirmingDelete(false)
-        jumpedFor.current = null
     }, [feedback?.id])
 
     if (!feedback) return null
@@ -375,90 +259,11 @@ export default function FeedbackDetailModal(props: Props) {
                         overflow instead of handing the replies a viewport to scroll inside.
                         A share of the window rather than a fixed number, so the same rule
                         holds on a small phone as on a large one. */}
-                    <ScrollView
-                        ref={replies}
-                        style={{ maxHeight: windowHeight * REPLIES_MAX_SHARE }}
-                        contentContainerStyle={{ paddingBottom: spacing.md }}
-                        keyboardShouldPersistTaps="handled"
-                        // Opens at the newest reply. The thread runs oldest first, so
-                        // landing at the top of a long one shows the least current part of
-                        // it. Unanimated: this is where the drawer opens, not a journey.
-                        onContentSizeChange={() => {
-                            if (!feedback || comments.loadedId !== feedback.id) return
-                            // Animated, unlike the opening jump: this one is a consequence
-                            // of something you just did, and worth seeing happen.
-                            if (followNewReply.current) {
-                                followNewReply.current = false
-                                replies.current?.scrollToEnd({ animated: true })
-                                return
-                            }
-                            if (jumpedFor.current === feedback.id) return
-                            jumpedFor.current = feedback.id
-                            replies.current?.scrollToEnd({ animated: false })
-                        }}
-                    >
-                        {comments.loading && comments.comments.length === 0 && (
-                            <ActivityIndicator
-                                size="small" color={colors.accent}
-                                style={{ marginTop: spacing.md }}
-                            />
-                        )}
-
-                        {comments.comments.map(c => (
-                            <Reply
-                                key={c.id}
-                                comment={c}
-                                readOnly={readOnly}
-                                pending={comments.pendingId === c.id}
-                                onEdited={(text, done) => comments.update(c.id, text, done)}
-                            />
-                        ))}
-                    </ScrollView>
-
-                    {!readOnly && (
-                        <View style={{
-                            flexDirection: "row", alignItems: "flex-end",
-                            gap: spacing.sm, marginTop: spacing.md,
-                            borderTopWidth: 1, borderTopColor: colors.divider,
-                            paddingTop: spacing.md,
-                        }}>
-                            <TextInput
-                                value={reply}
-                                onChangeText={setReply}
-                                placeholder="Add a reply"
-                                placeholderTextColor={colors.textMuted}
-                                multiline
-                                style={{
-                                    flex: 1, maxHeight: 100,
-                                    borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10,
-                                    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-                                    color: colors.textPrimary, backgroundColor: colors.inputBackground,
-                                    ...typography.body,
-                                }}
-                            />
-                            <Pressable
-                                // Cleared by the callback rather than here, so a failed post
-                                // keeps the text in the box.
-                                onPress={() => comments.create(reply.trim(), () => {
-                                    setReply("")
-                                    followNewReply.current = true
-                                })}
-                                disabled={!reply.trim() || posting}
-                                hitSlop={8}
-                                accessibilityRole="button"
-                                accessibilityLabel="Post reply"
-                                style={{
-                                    width: 38, height: 38, borderRadius: 19,
-                                    alignItems: "center", justifyContent: "center",
-                                    backgroundColor: reply.trim() && !posting ? colors.accent : colors.buttonDisabled,
-                                }}
-                            >
-                                {posting
-                                    ? <ActivityIndicator size="small" color={colors.textPrimary} />
-                                    : <MaterialCommunityIcons name="send" size={16} color={colors.textPrimary} />}
-                            </Pressable>
-                        </View>
-                    )}
+                    <CommentThread
+                        thread={comments}
+                        targetId={feedback.id}
+                        readOnly={readOnly}
+                    />
 
                     {props.saving && <OverlayLoader loaderProps={{ size: 28 }} />}
                 </View>

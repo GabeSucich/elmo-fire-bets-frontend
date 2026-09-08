@@ -35,7 +35,7 @@ export default function PickVetoModal({ visible, onClose, pick, onVetoCreated }:
                     ...shadows.modal,
                 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Create Veto</Text>
+                        <Text style={{ ...typography.title, color: colors.textPrimary }}>Veto</Text>
                         <Pressable onPress={onClose} style={{ padding: spacing.xs }}>
                             <Text style={{ fontSize: 22, color: colors.textSecondary }}>x</Text>
                         </Pressable>

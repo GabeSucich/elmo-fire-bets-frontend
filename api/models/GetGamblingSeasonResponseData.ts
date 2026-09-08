@@ -11,5 +11,6 @@ export type GetGamblingSeasonResponseData = {
     year: number;
     state: GamblingSeasonState;
     gamblers: Record<string, GamblerResponseData>;
+    reaction_palette: Array<string>;
 };
 

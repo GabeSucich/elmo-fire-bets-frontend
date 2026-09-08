@@ -184,17 +184,22 @@ export class FeedbackService {
     /**
      * List Feedback Comments
      * @param feedbackId
+     * @param after Only replies created after this. Send back a created_at from a previous response verbatim; used by the open drawer to poll for new replies.
      * @returns ListFeedbackCommentsResponseData Successful Response
      * @throws ApiError
      */
     public static listFeedbackComments(
         feedbackId: number,
+        after?: (string | null),
     ): CancelablePromise<ListFeedbackCommentsResponseData> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/feedback/{feedback_id}/comments',
             path: {
                 'feedback_id': feedbackId,
+            },
+            query: {
+                'after': after,
             },
             errors: {
                 422: `Validation Error`,

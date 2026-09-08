@@ -9,6 +9,8 @@ import {
 } from "@/api"
 import { VoteDirection } from "@/components/feedback/VoteControl"
 import useApiActionState from "./useApiActionState"
+import useWriteState from "./useWriteState"
+import useCommentThread, { THREAD_POLL_INTERVAL_MS, ThreadComment } from "./useCommentThread"
 import { parseServerTime } from "@/util/relativeTime"
 
 /** Anything raised this recently leads the list, ahead of the ranked backlog. */
@@ -16,41 +18,6 @@ export const NEW_FEEDBACK_HOURS = 72
 
 function isNew(feedback: FeedbackResponseData, now: number): boolean {
     return now - parseServerTime(feedback.created_at) < NEW_FEEDBACK_HOURS * 60 * 60 * 1000
-}
-
-/**
- * The bookkeeping every write here shares: which row it belongs to, and what to run if it
- * lands. `done` is fired only on success, so a failed save leaves the form open with its
- * text intact rather than closing over a toast.
- */
-function useWriteState() {
-    const [saving, setSaving] = useState(false)
-    const [pendingId, setPendingId] = useState<number | null>(null)
-    const onSuccess = useRef<(() => void) | null>(null)
-    // Deletes come back with no body, so the row to drop is remembered across the call.
-    const targetId = useRef<number | null>(null)
-
-    return {
-        saving,
-        pendingId,
-        target: targetId,
-        begin(id: number | null, done?: () => void) {
-            setPendingId(id)
-            targetId.current = id
-            onSuccess.current = done ?? null
-        },
-        finish() {
-            onSuccess.current?.()
-            onSuccess.current = null
-        },
-        track(value: boolean | ((prev: boolean) => boolean)) {
-            setSaving(value)
-            if (value === false) {
-                setPendingId(null)
-                onSuccess.current = null
-            }
-        },
-    }
 }
 
 export type FeedbackData = ReturnType<typeof useFeedback>
@@ -227,96 +194,30 @@ export function useFeedbackVoters(feedbackId: number | null, revision: number) {
     return { voters, loading }
 }
 
+/** A suggestion's replies, in the shape the shared thread renders. */
+const toThreadComment = (c: FeedbackCommentResponseData): ThreadComment => ({
+    id: c.id,
+    authorName: c.author_name,
+    comment: c.comment,
+    createdAt: c.created_at,
+    viewerIsAuthor: c.viewer_is_author,
+})
+
 /**
- * Replies for one suggestion, loaded when it is opened.
+ * Replies for one suggestion, loaded when it is opened and kept live while it stays open.
  *
- * They are kept out of the list response because most suggestions are never opened and the card
- * only needs the count. Every write returns the reply it changed, so the thread is patched
- * in place and no reply costs a second round trip.
+ * Every part of this that is not the four service calls now lives in useCommentThread, so a
+ * suggestion's thread and a pick's thread cannot drift apart.
  */
 export function useFeedbackComments(feedbackId: number | null) {
-    const [comments, setComments] = useState<FeedbackCommentResponseData[]>([])
-    const [loading, setLoading] = useState(false)
-    // Which suggestion the replies in hand actually belong to. An empty list means nothing until
-    // this matches: before the first response it is the placeholder, not a reply count.
-    const [loadedId, setLoadedId] = useState<number | null>(null)
-    const requestedId = useRef<number | null>(null)
-    const writes = useWriteState()
-
-    const { execute: load } = useApiActionState(
-        FeedbackService.listFeedbackComments,
-        response => {
-            setComments(response.comments)
-            setLoadedId(requestedId.current)
-        },
-        setLoading,
-        "There was an error loading replies",
-        { retryable: true }
-    )
-
-    const reload = useCallback(() => {
-        if (feedbackId === null) return
-        requestedId.current = feedbackId
-        load(feedbackId)
-    }, [feedbackId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        // Cleared first so opening a second suggestion never flashes the first one's replies.
-        setComments([])
-        setLoadedId(null)
-        reload()
-    }, [reload])
-
-    // The thread is oldest-first, so a new reply belongs on the end — right above the box
-    // it was typed in.
-    function appendReply(added: FeedbackCommentResponseData) {
-        setComments(current => [...current, added])
-        writes.finish()
-    }
-
-    function replaceReply(updated: FeedbackCommentResponseData) {
-        setComments(current => current.map(c => (c.id === updated.id ? updated : c)))
-        writes.finish()
-    }
-
-    function dropReply() {
-        setComments(current => current.filter(c => c.id !== writes.target.current))
-        writes.finish()
-    }
-
-    const { execute: createComment } = useApiActionState(
-        FeedbackService.createFeedbackComment, res => appendReply(res.comment), writes.track,
-        "There was an error posting that reply"
-    )
-    const { execute: updateComment } = useApiActionState(
-        FeedbackService.updateFeedbackComment, res => replaceReply(res.comment), writes.track,
-        "There was an error saving that reply"
-    )
-    const { execute: deleteComment } = useApiActionState(
-        FeedbackService.deleteFeedbackComment, dropReply, writes.track,
-        "There was an error deleting that reply"
-    )
-
-    return {
-        comments,
-        loading,
-        loadedId,
-        saving: writes.saving,
-        pendingId: writes.pendingId,
-        create: (comment: string, done?: () => void) => {
-            if (feedbackId === null) return
-            writes.begin(null, done)
-            createComment(feedbackId, { comment })
-        },
-        update: (commentId: number, comment: string, done?: () => void) => {
-            writes.begin(commentId, done)
-            updateComment(commentId, { comment })
-        },
-        // No UI reaches this yet — replies can be edited but not deleted. Kept in step
-        // with the route that is still there, so putting the control back is a one-liner.
-        remove: (commentId: number) => {
-            writes.begin(commentId)
-            deleteComment(commentId)
-        },
-    }
+    return useCommentThread({
+        targetId: feedbackId,
+        list: id => FeedbackService.listFeedbackComments(id).then(res => res.comments),
+        create: (id, comment) => FeedbackService.createFeedbackComment(id, { comment }).then(res => res.comment),
+        update: (commentId, comment) => FeedbackService.updateFeedbackComment(commentId, { comment }).then(res => res.comment),
+        remove: commentId => FeedbackService.deleteFeedbackComment(commentId),
+        toThreadComment,
+        pollIntervalMs: THREAD_POLL_INTERVAL_MS,
+        poll: (id, after) => FeedbackService.listFeedbackComments(id, after).then(res => res.comments),
+    })
 }
