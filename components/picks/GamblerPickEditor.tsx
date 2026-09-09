@@ -4,7 +4,7 @@ import { Text, View } from "react-native";
 import AppModal from "@/components/reusable/AppModal";
 import OutstandingVetoCard from "../vetos/OutstandingVetoCard";
 import { PickCreateEditData } from "./common";
-import PickEditor from "./PickEditor";
+import PickEditor, { PickPrefill } from "./PickEditor";
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch";
 import { useLoadingState } from "@/composables/useLoadingState";
 import useApiActionState from "@/composables/useApiActionState";
@@ -14,7 +14,8 @@ import { colors, shadows, spacing, typography } from "@/theme/colors";
 type Props = {
     parlayId: number,
     gamblerId: number,
-    pick: PickResponseData | null,
+    pick: PickResponseData | null
+    prefill?: PickPrefill | null,
     onPickSaved: (pick: PickResponseData) => void
 }
 
@@ -108,6 +109,7 @@ export default function GamblerPickEditor(props: Props) {
         <View>
             <PickEditor
                 pick={props.pick}
+                prefill={props.prefill}
                 handleEdit={handleEdit}
                 disabled={hasApprovedVeto || saving}
             />

@@ -168,6 +168,9 @@ export default function SeasonPickEditorModal(props: Props) {
                                 value={searchText}
                                 onChangeText={setSearchText}
                                 placeholder={teamWins ? "Team" : "Player or Team"}
+                                // See PickEditor: autocorrect rewrites surnames as you type.
+                                autoCorrect={false}
+                                spellCheck={false}
                                 placeholderTextColor={colors.textMuted}
                                 style={{
                                     borderWidth: 1, borderColor: colors.inputBorder, borderRadius: 10,

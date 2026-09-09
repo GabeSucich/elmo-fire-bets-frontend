@@ -79,7 +79,10 @@ export default function BuildingParlayFooter({ parlay }: Props) {
 
     if (isMyOwnedParlay) {
         return (
-            <View style={{ alignItems: 'flex-end', marginTop: spacing.md }}>
+            <View style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+                marginTop: spacing.md,
+            }}>
                 {/* An icon rather than a label, but still a filled button: it is the primary
                     action on a building lay, and the confirmation names it. */}
                 <ActionButton
@@ -87,6 +90,7 @@ export default function BuildingParlayFooter({ parlay }: Props) {
                     accessibilityLabel="Lock lay"
                     onPress={() => setLockConfirmVisible(true)}
                 />
+
 
                 <LockConfirmModal
                     visible={lockConfirmVisible}
@@ -121,8 +125,12 @@ export default function BuildingParlayFooter({ parlay }: Props) {
     const ownerName = gamblers[parlay.owner_id]?.firstName
 
     return (
-        <View style={{ alignItems: 'flex-end', marginTop: spacing.md }}>
+        <View style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+            marginTop: spacing.md,
+        }}>
             <ActionButton text={`Claim from ${ownerName}`} onPress={() => setClaimConfirmVisible(true)} />
+
 
             <ClaimConfirmModal
                 visible={claimConfirmVisible}

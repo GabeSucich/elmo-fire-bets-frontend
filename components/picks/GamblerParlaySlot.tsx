@@ -5,14 +5,14 @@ import { Animated, Pressable, Text, TouchableOpacity, View } from "react-native"
 import { useParlaysContext } from "@/contexts/parlaysContext"
 import PickDisplay from "./PickDisplay"
 import VetoStatusMini from "../vetos/VetoStatusMini"
-import PickEditorModal from "./modals/PickEditorModal"
+import PickEntryFlow, { PickEntrySurface } from "./PickEntryFlow"
 import PickVetoModal from "./modals/PickVetoModal"
 import VetoStatusModal from "./modals/VetoStatusModal"
 import PickResultEditorModal from "./modals/PickResultEditorModal"
 import { PickResultColors, VetoResultColors, vetoResultDisplay } from "@/util/pickResults"
 import { TileSize } from "../reusable/tiles/common"
-import EntotypeIcon from 'react-native-vector-icons/Entypo'
 import FeatherIcon from 'react-native-vector-icons/Feather'
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { colors, typography, spacing } from "@/theme/colors"
 import { PickDisplayUtil } from "@/util/picks"
 import { usePerformancesContext } from "@/contexts/performancesContext"
@@ -101,7 +101,11 @@ export default function GamblerParlaySlot(props: Props) {
     }
 
     const displayName = props.gambler.firstName
-    const [pickEditorVisible, setPickEditorVisible] = useState(false)
+    // Which way into the pick is showing, if either. Adding one opens the book's board,
+    // since a pick usually starts as a line someone saw; editing one opens what is already
+    // written, since you came to change a detail rather than to shop again. Both offer the
+    // other, so neither guess costs more than a tap.
+    const [entrySurface, setEntrySurface] = useState<PickEntrySurface | null>(null)
     const [vetoModalVisible, setVetoModalVisible] = useState(false)
     const [vetoStatusVisible, setVetoStatusVisible] = useState(false)
     const [resultEditorVisible, setResultEditorVisible] = useState(false)
@@ -122,7 +126,7 @@ export default function GamblerParlaySlot(props: Props) {
     const reactions = usePickReactions(patchThisPick)
 
     function handlePickSaved() {
-        setPickEditorVisible(false)
+        setEntrySurface(null)
         refreshParlay(props.parlay.id)
     }
 
@@ -204,12 +208,19 @@ export default function GamblerParlaySlot(props: Props) {
                     </Text>
                 )}
                 {canCreatePick && (
-                    <Pressable onPress={() => setPickEditorVisible(true)}>
-                        <EntotypeIcon name="squared-plus" size={16} color={colors.success} style={{marginLeft: spacing.sm}} />
+                    <Pressable onPress={() => setEntrySurface("browse")}>
+                        {/* A target rather than a plus: this opens the book's board, and
+                            what you are doing there is picking one line out of several
+                            hundred. The plus said "make a row", which is no longer the
+                            first thing that happens. */}
+                        <MaterialCommunityIcons
+                            name="bullseye-arrow" size={18} color={colors.success}
+                            style={{marginLeft: spacing.sm}}
+                        />
                     </Pressable>
                 )}
                 {canEditPick && (
-                    <Pressable onPress={() => setPickEditorVisible(true)}>
+                    <Pressable onPress={() => setEntrySurface("edit")}>
                         <FeatherIcon name="edit" size={15} color={colors.accent} style={{marginLeft: spacing.sm}} />
                     </Pressable>
                 )}
@@ -340,13 +351,15 @@ export default function GamblerParlaySlot(props: Props) {
                     patchPick={patchThisPick}
                 />
             )}
-            <PickEditorModal
-                visible={pickEditorVisible}
-                onClose={() => setPickEditorVisible(false)}
+            <PickEntryFlow
+                open={entrySurface}
+                date={props.parlay.competition_date}
+                slateType={props.parlay.slate_type}
                 pick={props.pick}
-                onPickSaved={handlePickSaved}
                 parlayId={parlayId}
                 gamblerId={props.gambler.id}
+                onClose={() => setEntrySurface(null)}
+                onPickSaved={handlePickSaved}
             />
             {props.pick && (
                 <PickVetoModal

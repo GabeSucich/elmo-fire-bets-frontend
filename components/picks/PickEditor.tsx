@@ -8,11 +8,26 @@ import SelectableTile from "../reusable/tiles/SelectableTile";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import NumericInput from "../reusable/NumericInput";
 import { PickCreateEditData } from "./common";
-import { getPickLine, sauceFactorDisplay } from "@/util/picks";
+import { getPickLine, sauceFactorDisplay, sauceFactorForOdds } from "@/util/picks";
 import { colors, typography, spacing, shadows } from "@/theme/colors";
+
+/** A line lifted from a sportsbook, used to open the editor already filled in. */
+export type PickPrefill = {
+    target: PlayerTeamResult
+    propType: PropBetType
+    line: number
+    direction: PropBetDirection
+    /**
+     * The book's price for the chosen side, as a signed string ("+105", "-130"), or null
+     * where it was unpriced. Not saved with the pick — it is only here to seed the sauce.
+     */
+    odds: string | null
+}
 
 type Props = {
     pick: PickResponseData | null,
+    /** Only read on mount — the editor owns its state once open. */
+    prefill?: PickPrefill | null,
     handleEdit: (data: PickCreateEditData) => void,
     submitLabel?: string,
     disabled?: boolean,
@@ -33,7 +48,12 @@ function getPlayerTeamResult(pick: PickResponseData): PlayerTeamResult {
 }
 
 export default function PickEditor(props: Props) {
-    const initialTarget = props.pick ? getPlayerTeamResult(props.pick) : null
+    // A prefill outranks whatever the pick currently holds. The two mean different things:
+    // `pick` says which row is being written, `prefill` says what to write. Arriving from
+    // the line browser with a pick already in the slot is a replacement, not an edit of the
+    // old numbers — so the chosen line wins and the existing pick is overwritten in place
+    // rather than added alongside.
+    const initialTarget = props.prefill?.target ?? (props.pick ? getPlayerTeamResult(props.pick) : null)
     const [selectedTarget, setSelectedTarget] = useState<PlayerTeamResult | null>(initialTarget)
     const [targetOpts, setTargetOpts] = useState<PlayerTeamResult[]>(initialTarget ? [initialTarget] : [])
     const [executeSearchTimeoutId, setExecuteSearchTimeoutId] = useState<number | null>(null)
@@ -43,10 +63,18 @@ export default function PickEditor(props: Props) {
     // which would also clear the spinner while the current search is still running.
     const latestSearchTerm = useRef("")
 
-    const [selectedDirection, setSelectedDirection] = useState<PropBetDirection | null>(props.pick?.direction ?? null)
-    const [selectedBetType, setSelectedBetType] = useState<PropBetType | null>(props.pick?.prop_type ?? null)
-    const [propLine, setPropLine] = useState<string>((props.pick && getPickLine(props.pick))?.toString() ?? "")
-    const [selectedSauceFactor, setSelectedSauceFactor] = useState<SauceFactor | null>(props.pick?.sauce_factor ?? null)
+    const [selectedDirection, setSelectedDirection] = useState<PropBetDirection | null>(
+        props.prefill?.direction ?? props.pick?.direction ?? null)
+    const [selectedBetType, setSelectedBetType] = useState<PropBetType | null>(
+        props.prefill?.propType ?? props.pick?.prop_type ?? null)
+    const [propLine, setPropLine] = useState<string>(
+        props.prefill?.line?.toString() ?? (props.pick && getPickLine(props.pick))?.toString() ?? "")
+    // Seeded from the price when one came off the board: a line at +105 or longer is spicy
+    // and one at -130 or shorter is a bitch, which is a judgement the number already makes.
+    // Only ever a starting point — the chips are still there to disagree with, and a hand-
+    // entered pick has no price to read, so it starts wherever it already was.
+    const [selectedSauceFactor, setSelectedSauceFactor] = useState<SauceFactor | null>(
+        props.prefill ? sauceFactorForOdds(props.prefill.odds) : props.pick?.sauce_factor ?? null)
     const [deleteVeto, setDeleteVeto] = useState(false)
 
     const { gamblers } = useGamblingSeasonContext()
@@ -160,6 +188,12 @@ export default function PickEditor(props: Props) {
                     onChangeText={handleSearchChange}
                     placeholder="Player or Team"
                     placeholderTextColor={colors.textMuted}
+                    // Autocorrect fights a name search: iOS rewrites "Purdy" to "Purdue"
+                    // and "Nacua" to "Nacho" mid-type, and the search fires on what it
+                    // rewrote. spellCheck off too, so the field is not underlined in red
+                    // for every surname.
+                    autoCorrect={false}
+                    spellCheck={false}
                     style={{
                         borderWidth: 1,
                         borderColor: colors.inputBorder,
