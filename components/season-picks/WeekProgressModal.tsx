@@ -7,6 +7,7 @@ import DismissKeyboardBackdrop from "@/components/reusable/DismissKeyboardBackdr
 import NumericInput from "@/components/reusable/NumericInput"
 import OverlayLoader from "@/components/reusable/OverlayLoader"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
+import TeamLogo from "@/components/reusable/TeamLogo"
 
 type Props = {
     visible: boolean
@@ -85,13 +86,16 @@ export default function WeekProgressModal(props: Props) {
                     padding: spacing.xl, borderWidth: 1, borderColor: colors.cardBorder,
                     gap: spacing.md, ...shadows.modal,
                 }}>
-                    <View>
-                        <Text style={{ ...typography.heading, color: colors.textPrimary }}>
-                            {pick.target_name}
-                        </Text>
-                        <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-                            {teamWins ? "Wins" : pick.prop_type} · {pick.direction} {pick.line}
-                        </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                        <TeamLogo team={pick.prop_bet_target.team_name} size={26} />
+                        <View style={{ flexShrink: 1 }}>
+                            <Text style={{ ...typography.heading, color: colors.textPrimary }}>
+                                {pick.target_name}
+                            </Text>
+                            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                                {teamWins ? "Wins" : pick.prop_type} · {pick.direction} {pick.line}
+                            </Text>
+                        </View>
                     </View>
 
                     {props.latestOpenWeek > 0 && (

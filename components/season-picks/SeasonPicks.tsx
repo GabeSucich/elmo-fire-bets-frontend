@@ -19,6 +19,7 @@ import { calculatePace, paceColor } from "@/util/pace"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
 import SeasonPickEditorModal from "./SeasonPickEditorModal"
 import WeekProgressModal from "./WeekProgressModal"
+import TeamLogo from "@/components/reusable/TeamLogo"
 
 type Props = {
     /** Loaded by AnalyticsView, which needs the enabled flag to decide on the tab itself. */
@@ -190,6 +191,10 @@ export default function SeasonPicks({ season }: Props) {
                                 <View style={styles.pickRowMain}>
                                     <View style={styles.pickMain}>
                                         <View style={styles.pickTitleRow}>
+                                            {/* Purely additive here: target_name is the
+                                                player or team on its own, with no "(ATL)"
+                                                for the mark to replace. */}
+                                            <TeamLogo team={pick.prop_bet_target.team_name} size={20} />
                                             <Text style={styles.pickTarget} numberOfLines={1}>{pick.target_name}</Text>
                                             {pick.is_finalized && <Text style={styles.lockedTag}>LOCKED</Text>}
                                         </View>
