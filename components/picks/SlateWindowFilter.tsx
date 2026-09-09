@@ -22,7 +22,8 @@ type Props = {
  *
  * A dropdown rather than a row of chips: four windows plus a clear is more than fits
  * comfortably beside the search box, and this is a filter you set once and forget rather
- * than something you toggle repeatedly.
+ * than something you toggle repeatedly. Clearing is "All games" at the top of the menu,
+ * which is one way in and one way out rather than two controls sharing a button.
  */
 export default function SlateWindowFilter({ value, counts, total, onChange }: Props) {
     const [anchor, setAnchor] = useState<PopoverAnchor | null>(null)
@@ -70,15 +71,13 @@ export default function SlateWindowFilter({ value, counts, total, onChange }: Pr
                 }}>
                     {value ?? ALL}
                 </Text>
-                {/* Clearing without reopening the menu — the common way out of a filter is
-                    straight back to everything. */}
-                {value ? (
-                    <Pressable onPress={() => onChange(null)} hitSlop={8}>
-                        <MaterialCommunityIcons name="close" size={15} color={colors.textSecondary} />
-                    </Pressable>
-                ) : (
-                    <MaterialCommunityIcons name="chevron-down" size={15} color={colors.textMuted} />
-                )}
+                {/* Always the chevron, never a clear. A second control inside the button
+                    meant the same tap did different things depending on which few pixels it
+                    landed on, and "All games" at the top of the menu already clears it. */}
+                <MaterialCommunityIcons
+                    name="chevron-down" size={15}
+                    color={value ? colors.accent : colors.textMuted}
+                />
             </Pressable>
 
             <Popover anchor={anchor} onClose={() => setAnchor(null)}>

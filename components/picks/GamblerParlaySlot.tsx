@@ -6,6 +6,7 @@ import { useParlaysContext } from "@/contexts/parlaysContext"
 import PickDisplay from "./PickDisplay"
 import VetoStatusMini from "../vetos/VetoStatusMini"
 import PickEntryFlow, { PickEntrySurface } from "./PickEntryFlow"
+import TeamLogo from "@/components/reusable/TeamLogo"
 import PickVetoModal from "./modals/PickVetoModal"
 import VetoStatusModal from "./modals/VetoStatusModal"
 import PickResultEditorModal from "./modals/PickResultEditorModal"
@@ -14,7 +15,6 @@ import { TileSize } from "../reusable/tiles/common"
 import FeatherIcon from 'react-native-vector-icons/Feather'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { colors, typography, spacing } from "@/theme/colors"
-import { PickDisplayUtil } from "@/util/picks"
 import { usePerformancesContext } from "@/contexts/performancesContext"
 import { findBanListEntry } from "@/util/trends"
 import BanListAlert from "./BanListAlert"
@@ -199,9 +199,18 @@ export default function GamblerParlaySlot(props: Props) {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 {/* The bet leads; whose bet it is sits at the foot of the slot. */}
                 {props.pick ? (
-                    <Text style={{ color: colors.textPrimary, ...typography.body, fontWeight: '600', flexShrink: 1 }}>
-                        {PickDisplayUtil.playerTeamDisplay(props.pick)}
-                    </Text>
+                    <>
+                        {/* The mark stands in for the "(ATL)" the name used to carry. On a
+                            card of five picks it is the fastest way to see which games the
+                            lay is spread across. */}
+                        <TeamLogo team={props.pick.prop_bet_target.team_name} size={20} />
+                        <Text style={{
+                            color: colors.textPrimary, ...typography.body,
+                            fontWeight: '600', flexShrink: 1, marginLeft: spacing.xs,
+                        }}>
+                            {props.pick.prop_bet_target.player_name ?? props.pick.prop_bet_target.team_name}
+                        </Text>
+                    </>
                 ) : (
                     <Text style={{ color: colors.textMuted, ...typography.body, fontStyle: 'italic' }}>
                         No pick yet

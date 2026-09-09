@@ -7,6 +7,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { LineResponseData, PlayerLinesResponseData, PropBetDirection, PropBetType, SlateType } from "@/api"
 import AppModal from "@/components/reusable/AppModal"
 import IconAction from "@/components/reusable/IconAction"
+import TeamLogo from "@/components/reusable/TeamLogo"
 import Notice from "@/components/reusable/Notice"
 import TabButtons from "@/components/reusable/TabButtons"
 import ActivityLoader from "@/components/reusable/ActivityLoader"
@@ -17,7 +18,6 @@ import {
 import SlateWindowFilter from "@/components/picks/SlateWindowFilter"
 import { PickPrefill } from "@/components/picks/PickEditor"
 import { executePlayerTeamSearch, PlayerTeamResult, playerTeamDisplay } from "@/util/executePlayerSearch"
-import { relativeTime } from "@/util/relativeTime"
 import { slateDateLabel } from "@/util/slateDate"
 import { parseAmericanOdds } from "@/util/picks"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
@@ -143,6 +143,57 @@ function compareByTdPrice(a: PlayerLinesResponseData, b: PlayerLinesResponseData
     return left - right || a.name.localeCompare(b.name)
 }
 
+/** A shade smaller than a player's, since a fixture row carries two of them. */
+const GAME_LOGO_SIZE = 20
+
+/**
+ * "NO @ DET" as its two sides.
+ *
+ * The server builds this string, always in this form, so splitting it back is safe — and
+ * cheaper than widening the response to carry two fields the client only wants for an icon.
+ * Anything that does not split returns empty, which renders no logos rather than a wrong one.
+ */
+function splitMatchup(matchup: string): string[] {
+    const sides = matchup.split(" @ ")
+    return sides.length === 2 ? sides : []
+}
+
+/**
+ * "NO @ DET" with each side wearing its own mark.
+ *
+ * Paired rather than banked together at the front of the row: two logos side by side, then
+ * the names, makes you match the first to the first and the second to the second. Beside
+ * its own abbreviation, each mark reads as one thing.
+ *
+ * Falls back to the plain string if it does not split, which is the safe way to be wrong —
+ * a fixture is still legible without its logos.
+ */
+function MatchupLine({ matchup }: { matchup: string }) {
+    const nameStyle = { ...typography.body, color: colors.textPrimary, fontWeight: "600" as const }
+    const sides = splitMatchup(matchup)
+    if (sides.length !== 2) return <Text style={nameStyle}>{matchup}</Text>
+
+    return (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+            <TeamLogo team={sides[0]} size={GAME_LOGO_SIZE} />
+            <Text style={nameStyle}>{sides[0]}</Text>
+            {/* Given room on both sides so it reads as a separator rather than a third
+                name, but kept in the primary colour — muted, it fell away between two logos
+                and the two sides ran together. */}
+            <Text style={{ ...typography.small, color: colors.textPrimary, marginHorizontal: spacing.xs }}>
+                @
+            </Text>
+            <TeamLogo team={sides[1]} size={GAME_LOGO_SIZE} />
+            <Text style={nameStyle}>{sides[1]}</Text>
+        </View>
+    )
+}
+
+/** Most markets first, so the players a book has an opinion about lead the board. */
+function compareByBetCount(a: PlayerLinesResponseData, b: PlayerLinesResponseData): number {
+    return b.lines.length - a.lines.length || a.name.localeCompare(b.name)
+}
+
 /** Wide enough that the odds and the spinner occupy the same footprint. */
 const SIDE_MIN_WIDTH = 62
 
@@ -250,10 +301,12 @@ function PlayerRow({ player, open, resolvingKey, onToggle, onChoose }: {
                     paddingVertical: spacing.md, gap: spacing.sm,
                 }}
             >
+                {/* Leading rather than trailing the name: a logo in a fixed column lines
+                    up down the list, where one chasing the end of each name does not. */}
+                <TeamLogo team={player.team} />
                 <View style={{ flex: 1 }}>
                     <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: "600" }}>
                         {player.name}
-                        {player.team ? <Text style={{ color: colors.textMuted }}>{`  ${player.team}`}</Text> : null}
                     </Text>
                     {subtitle(player) ? (
                         <Text style={{ ...typography.small, color: colors.textMuted }}>
@@ -312,7 +365,7 @@ function PlayerRow({ player, open, resolvingKey, onToggle, onChoose }: {
 export default function SlateLinesModal({
     visible, date, slateType, onClose, onSelect, onDismissed, onEnterManually,
 }: Props) {
-    const { players, fetchedAt, loading, loaded } = useSlateLines(visible ? date : null)
+    const { players, loading, loaded } = useSlateLines(visible ? date : null)
     const [search, setSearch] = useState("")
     // Three ways in, for three questions people actually arrive with: "what is on tonight",
     // "what is Purdy priced at", and "who has a receptions line".
@@ -369,7 +422,12 @@ export default function SlateLinesModal({
             // receiver. Alphabetical is the right default when every row is a different
             // question, but here every row is the same question and the price is the answer.
             .sort(compareByTdPrice)
-        : inWindow
+        // Busiest board first everywhere else. How many markets a book opens on a player is
+        // its own judgement about who matters: a starting back carries a dozen, a third
+        // tight end carries one. Alphabetical put A.J. Dillon above Josh Allen, which is an
+        // order nobody was ever looking for. Copied before sorting — when no time filter is
+        // on, this list is the fetched one and sorting in place would reorder it underneath.
+        : [...inWindow].sort(compareByBetCount)
 
     // The whole slate is shown until it is narrowed. Search filters it rather than
     // revealing it, so the sheet always says what is on offer.
@@ -564,9 +622,7 @@ export default function SlateLinesModal({
                         }}
                     >
                         <View style={{ flex: 1 }}>
-                            <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: "600" }}>
-                                {row.game.matchup}
-                            </Text>
+                            <MatchupLine matchup={row.game.matchup} />
                             {kickoffLabel(row.game.startsAt) ? (
                                 <Text style={{ ...typography.small, color: colors.textMuted }}>
                                     {kickoffLabel(row.game.startsAt)}
@@ -607,6 +663,7 @@ export default function SlateLinesModal({
                         paddingVertical: spacing.md,
                         borderBottomWidth: 1, borderBottomColor: colors.divider,
                     }}>
+                        <TeamLogo team={row.player.team} />
                         <View style={{ flex: 1 }}>
                             <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: "600" }}>
                                 {row.player.name}
@@ -666,26 +723,24 @@ export default function SlateLinesModal({
                             <Text style={{ ...typography.heading, color: colors.textPrimary }}>
                                 Browse Lines
                             </Text>
-                            {/* Which day, then how fresh. The date used to vanish the
-                                moment the slate loaded, which left no way to tell a lay
-                                dated Monday from one dated Sunday — and those are entirely
-                                different boards, since Monday holds exactly one game. The
-                                weekday is spelled out because that is the part that makes a
-                                wrong date obvious at a glance. */}
+                            {/* The day, and only the day. The weekday is spelled out
+                                because that is what makes a wrong date obvious at a glance
+                                — a lay dated Monday and one dated Sunday are entirely
+                                different boards, since Monday holds a single game. */}
                             <Text style={{ ...typography.small, color: colors.textMuted }}>
-                                {slateDateLabel(date)}{fetchedAt ? `  ·  updated ${relativeTime(fetchedAt)}` : ""}
+                                {slateDateLabel(date)}
                             </Text>
                         </View>
-                        {/* Sits with the title rather than pushed to the far edge: it is
-                            part of what the sheet is showing, not an action on it. The
-                            spacer after it keeps the close button in its usual corner. */}
+                        {/* Pushed to the far edge, next to the close: the title says what
+                            the sheet is, and the controls that act on it gather on the other
+                            side rather than crowding the heading. */}
+                        <View style={{ flex: 1 }} />
                         <SlateWindowFilter
                             value={window}
                             counts={windowCounts}
                             total={totalGames}
                             onChange={setWindow}
                         />
-                        <View style={{ flex: 1 }} />
                         <IconAction icon="close" label="Close" color={colors.textSecondary} onPress={onClose} />
                     </View>
 
