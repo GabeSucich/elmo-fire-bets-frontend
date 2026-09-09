@@ -46,6 +46,9 @@ export type SeasonPicksData = ReturnType<typeof useSeasonPicks>
 export function useSeasonPicks(seasonId: number) {
     const [state, setState] = useState<SeasonPicksState>(EMPTY)
     const [loading, setLoading] = useState(true)
+    // Its own flag rather than `saving`: a sync is a whole-season operation that takes
+    // seconds and blocks the screen, where `saving` marks one pick being written.
+    const [syncing, setSyncing] = useState(false)
     const [saving, setSaving] = useState(false)
     // Separate from `loading` so callers can block on the first load without unmounting
     // on every later refresh — a reload after a write would otherwise tear down whatever
@@ -122,11 +125,22 @@ export function useSeasonPicks(seasonId: number) {
         "There was an error saving that week"
     )
 
+    const { execute: runSync } = useApiActionState(
+        SeasonPicksService.syncSeasonPicks,
+        // Everything on screen is derived from week rows, and a sync rewrites them across
+        // every gambler — so this reloads rather than trying to patch anything in place.
+        () => reload(),
+        setSyncing,
+        "There was an error syncing with ESPN"
+    )
+
     return {
         ...state,
         loading,
         initialized,
         saving,
+        syncing,
+        sync: () => runSync(seasonId),
         pendingPickId,
         reload,
         createPick: (body: SeasonPickRequestData, done?: () => void) => {

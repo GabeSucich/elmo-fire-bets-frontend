@@ -74,6 +74,18 @@ export default function SelectableTileGroup<T>(props: Props<T>) {
             <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
+                    // A ScrollView defaults to keyboardShouldPersistTaps="never", which
+                    // spends the first tap dismissing the keyboard and never passes it to
+                    // the chip underneath — so picking a player took two taps, one to close
+                    // the keyboard and one to actually choose.
+                    //
+                    // "always" rather than "handled": "handled" only forwards the tap if
+                    // React Native judges a child to have handled it, and a TouchableOpacity
+                    // inside a ScrollView is precisely where that judgement is unreliable —
+                    // it was still swallowing the first tap. "always" forwards
+                    // unconditionally. The keyboard is then closed explicitly by whoever
+                    // handles the selection, which is the wanted behaviour anyway.
+                    keyboardShouldPersistTaps="always"
                 >
                     {
                         filteredOptions().map(item => {

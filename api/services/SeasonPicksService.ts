@@ -6,6 +6,7 @@ import type { FinalizeRequestData } from '../models/FinalizeRequestData';
 import type { ListSeasonPicksResponseData } from '../models/ListSeasonPicksResponseData';
 import type { SeasonPickRequestData } from '../models/SeasonPickRequestData';
 import type { SeasonPickResponse } from '../models/SeasonPickResponse';
+import type { SyncSeasonPicksResponseData } from '../models/SyncSeasonPicksResponseData';
 import type { WeekProgressRequestData } from '../models/WeekProgressRequestData';
 import type { WeeksProgressRequestData } from '../models/WeeksProgressRequestData';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -170,6 +171,34 @@ export class SeasonPicksService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Sync Season Picks Endpoint
+     * Pull every season pick in this season up to date with ESPN.
+     *
+     * Admin only: it rewrites results across everyone's picks at once, including weeks that
+     * were entered by hand. Slow by nature — one ESPN call per distinct player or team — so
+     * it is a deliberate action rather than something a screen triggers on load.
+     *
+     * The same work runs on a schedule; this is the way to force it early, or to recover
+     * after ESPN was unreachable when the scheduled run went out.
+     * @param seasonId
+     * @returns SyncSeasonPicksResponseData Successful Response
+     * @throws ApiError
+     */
+    public static syncSeasonPicks(
+        seasonId: number,
+    ): CancelablePromise<SyncSeasonPicksResponseData> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/season_picks/season/{season_id}/sync',
+            path: {
+                'season_id': seasonId,
+            },
             errors: {
                 422: `Validation Error`,
             },

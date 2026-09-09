@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react"
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import {
     PropBetDirection,
     SeasonPickKind,
@@ -142,7 +143,30 @@ export default function SeasonPicks({ season }: Props) {
                         ? "Season has not started"
                         : `Week ${season.latestOpenWeek} open for entry`}
                 </Text>
-                {!season.editable && <Text style={styles.headerNote}>Season closed</Text>}
+                <View style={styles.headerRight}>
+                    {!season.editable && <Text style={styles.headerNote}>Season closed</Text>}
+                    {/* Admin only, and only while the season can still change: it rewrites
+                        results across everyone's picks, including weeks entered by hand. */}
+                    {season.viewerIsAdmin && season.editable && (
+                        <Pressable
+                            onPress={season.sync}
+                            disabled={season.syncing}
+                            hitSlop={8}
+                            accessibilityRole="button"
+                            accessibilityLabel="Update season pick progress from ESPN"
+                            style={styles.syncButton}
+                        >
+                            <MaterialCommunityIcons
+                                name="sync"
+                                size={16}
+                                color={season.syncing ? colors.textMuted : colors.accent}
+                            />
+                            <Text style={[styles.syncText, season.syncing && { color: colors.textMuted }]}>
+                                Update progress
+                            </Text>
+                        </Pressable>
+                    )}
+                </View>
             </View>
 
             <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
@@ -239,10 +263,17 @@ export default function SeasonPicks({ season }: Props) {
                 ))}
             </ScrollView>
 
+            {/* Over the whole screen rather than beside the button: a sync rewrites every
+                gambler's weeks, so the list underneath is stale until it lands. */}
+            {season.syncing && <OverlayLoader loaderProps={{ text: "Syncing..." }} />}
+
             {/* The modal closes as soon as the write lands, but the list is still being
                 re-fetched behind it — without this the tab sits on stale rows with no
-                sign that the new pick is on its way. */}
-            {season.loading && season.initialized && (
+                sign that the new pick is on its way.
+
+                Suppressed mid-sync: a sync ends by reloading, so for a moment both are
+                true and two scrims stack into one twice as dark. The labelled one wins. */}
+            {season.loading && season.initialized && !season.syncing && (
                 <OverlayLoader />
             )}
 
@@ -284,6 +315,13 @@ const styles = StyleSheet.create({
     },
     headerText: { ...typography.caption, color: colors.textSecondary, fontWeight: "600" },
     headerNote: { ...typography.caption, color: colors.textMuted, fontStyle: "italic" },
+    headerRight: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    syncButton: {
+        flexDirection: "row", alignItems: "center", gap: spacing.xs,
+        paddingVertical: spacing.xs, paddingHorizontal: spacing.sm,
+        borderRadius: 8, borderWidth: 1, borderColor: colors.cardBorder,
+    },
+    syncText: { ...typography.caption, color: colors.accent, fontWeight: "600" },
     scrollArea: { flex: 1 },
     scrollContent: { padding: spacing.lg, gap: spacing.md },
     card: {

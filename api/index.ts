@@ -101,6 +101,7 @@ export type { SubmitVetoVoteRequestData } from './models/SubmitVetoVoteRequestDa
 export type { SubmitVetoVoteResponseData } from './models/SubmitVetoVoteResponseData';
 export type { SwapParlayOrderRequestData } from './models/SwapParlayOrderRequestData';
 export type { SwapParlayOrderResponseData } from './models/SwapParlayOrderResponseData';
+export type { SyncSeasonPicksResponseData } from './models/SyncSeasonPicksResponseData';
 export type { TimeSeriesDatum } from './models/TimeSeriesDatum';
 export type { UnlockParlayRequestData } from './models/UnlockParlayRequestData';
 export type { UnlockParlayResponseData } from './models/UnlockParlayResponseData';

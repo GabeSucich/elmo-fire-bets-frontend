@@ -3,7 +3,7 @@ import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import { makeSortedPlayerBetTypes, makeSortedTeamBetTypes } from "@/util/betTypes";
 import { executePlayerTeamSearch, playerTeamDisplay, PlayerTeamResult } from "@/util/executePlayerSearch";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, Pressable, Switch, Text, TextInput, View } from "react-native";
 import SelectableTile from "../reusable/tiles/SelectableTile";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import NumericInput from "../reusable/NumericInput";
@@ -189,7 +189,13 @@ export default function PickEditor(props: Props) {
             <SelectableTileGroup<PlayerTeamResult>
                 selectedItem={selectedTarget}
                 items={targetOpts.filter(t => t.identifier !== selectedTarget?.identifier)}
-                handleSelect={t => setSelectedTarget(t)}
+                handleSelect={t => {
+                    // Picking one ends the search, so the keyboard has nothing left to do.
+                    // keyboardShouldPersistTaps lets the tap through; it does not put the
+                    // keyboard away, which is a separate thing and wanted here.
+                    Keyboard.dismiss()
+                    setSelectedTarget(t)
+                }}
                 itemDisplay={playerTeamDisplay}
                 itemKey={t => t.identifier}
                 containerProps={{

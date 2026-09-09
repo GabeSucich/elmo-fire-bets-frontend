@@ -27,7 +27,13 @@ export const colors = {
 
   // UI elements
   divider: '#3a3a4a',
+  // Behind a modal, where the point is to shut out what is underneath.
   overlay: 'rgba(0, 0, 0, 0.7)',
+  // Over a card that is busy, where the point is the opposite: the content should still
+  // read through it. At 0.6 the old value composited against the navy card to something
+  // close to solid, which looked like a coloured panel dropped on top rather than the
+  // thing underneath being temporarily unavailable.
+  scrim: 'rgba(0, 0, 0, 0.3)',
 
   // Interactive
   buttonPrimary: '#3b82f6',
