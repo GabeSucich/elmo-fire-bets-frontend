@@ -101,10 +101,10 @@ export default function GamblerParlaySlot(props: Props) {
     }
 
     const displayName = props.gambler.firstName
-    // Which way into the pick is showing, if either. Adding one opens the book's board,
-    // since a pick usually starts as a line someone saw; editing one opens what is already
-    // written, since you came to change a detail rather than to shop again. Both offer the
-    // other, so neither guess costs more than a tap.
+    // Which way into the pick is showing, if either. Both adding and editing open the
+    // book's board, because either way the question is which line you want — changing a
+    // pick is usually swapping it for a better one rather than correcting a typo. The
+    // editor is one tap away behind "Enter manually", with the existing pick still loaded.
     const [entrySurface, setEntrySurface] = useState<PickEntrySurface | null>(null)
     const [vetoModalVisible, setVetoModalVisible] = useState(false)
     const [vetoStatusVisible, setVetoStatusVisible] = useState(false)
@@ -220,7 +220,7 @@ export default function GamblerParlaySlot(props: Props) {
                     </Pressable>
                 )}
                 {canEditPick && (
-                    <Pressable onPress={() => setEntrySurface("edit")}>
+                    <Pressable onPress={() => setEntrySurface("browse")}>
                         <FeatherIcon name="edit" size={15} color={colors.accent} style={{marginLeft: spacing.sm}} />
                     </Pressable>
                 )}

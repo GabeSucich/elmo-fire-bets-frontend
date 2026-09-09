@@ -8,6 +8,7 @@ import NumericInput from "../reusable/NumericInput"
 import { ParlayEditArgs } from "./common"
 import { useToastContext } from "@/contexts/toastContext"
 import { colors, shadows, typography, spacing } from "@/theme/colors"
+import { parseSlateDate } from "@/util/slateDate";
 
 type Props = {
     parlay?: ParlayResponseData
@@ -21,7 +22,7 @@ export default function ParlayEditCard({ parlay, handleEdit }: Props) {
     // so a null start showed today while holding nothing — leaving Create disabled until the
     // user tapped a date that was already on screen.
     const [competitionDate, setCompetitionDate] = useState<Date | null>(
-        parlay?.competition_date ? new Date(parlay.competition_date) : new Date()
+        parseSlateDate(parlay?.competition_date) ?? new Date()
     )
     const [ownerId, setOwnerId] = useState<number | null>(
         parlay?.owner_id ?? gamblerId

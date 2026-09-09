@@ -32,8 +32,9 @@ type Props = {
  *
  * The two are one flow rather than two features: you arrive wanting a bet, not wanting a
  * particular way of describing one, and either surface can hand you to the other without
- * losing the attempt. Which one opens first is only a guess at what you meant — adding a
- * pick opens the board, editing one opens what you already wrote.
+ * losing the attempt. Both adding and editing open on the board, since either way the
+ * question is which line you want; typing one out is a tap away and keeps whatever pick
+ * was already there.
  *
  * It exists as a component because the hand-off is the hard part and it should only be
  * written once. iOS will not present a modal while another is still dismissing; it declines

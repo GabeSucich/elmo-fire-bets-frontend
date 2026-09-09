@@ -18,6 +18,8 @@ import SlateWindowFilter from "@/components/picks/SlateWindowFilter"
 import { PickPrefill } from "@/components/picks/PickEditor"
 import { executePlayerTeamSearch, PlayerTeamResult, playerTeamDisplay } from "@/util/executePlayerSearch"
 import { relativeTime } from "@/util/relativeTime"
+import { slateDateLabel } from "@/util/slateDate"
+import { parseAmericanOdds } from "@/util/picks"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
 
 // Game first, and the one it opens on: a lay is built around a fixture, so "who is playing
@@ -105,6 +107,41 @@ const SECTION_TITLE_SIZE = 13
 /** Rows built before the first paint — comfortably more than a phone shows at once. */
 const INITIAL_ROWS = 14
 const SECTION_RULE_WIDTH = 2
+
+/**
+ * What a TD lay is actually about: reaching the end zone.
+ *
+ * Named explicitly rather than matched on the substring "TD", which also caught Passing
+ * TDs — a quarterback's count of throws that ended in a score, which is somebody else
+ * doing the scoring and a different bet entirely. Longest TD is out for the same reason:
+ * it is a yardage market wearing the letters.
+ *
+ * The cost of a list is that a scoring prop added later has to be added here too. That is
+ * the right trade: the substring was wrong about a market the books actually publish, and
+ * being quietly wrong beats being briefly incomplete only if nobody notices.
+ */
+const SCORING_TD_PROPS: ReadonlySet<PropBetType> = new Set([
+    PropBetType.TDS, PropBetType.RUSH_TDS, PropBetType.REC_TDS,
+])
+
+/**
+ * Orders a TD board by how likely the player is to score.
+ *
+ * Keyed on the anytime market rather than on whichever TD line comes first, so a player
+ * priced for rushing and receiving scores is still ranked by the bet people actually make.
+ * A player the book has not priced sinks to the bottom rather than sorting as free money,
+ * and ties fall back to the name so the order is stable between refreshes.
+ */
+function compareByTdPrice(a: PlayerLinesResponseData, b: PlayerLinesResponseData): number {
+    const priceOf = (p: PlayerLinesResponseData) =>
+        parseAmericanOdds(p.lines.find(l => l.prop_type === PropBetType.TDS)?.over_odds)
+    const left = priceOf(a)
+    const right = priceOf(b)
+    if (left === null && right === null) return a.name.localeCompare(b.name)
+    if (left === null) return 1
+    if (right === null) return -1
+    return left - right || a.name.localeCompare(b.name)
+}
 
 /** Wide enough that the odds and the spinner occupy the same footprint. */
 const SIDE_MIN_WIDTH = 62
@@ -320,14 +357,18 @@ export default function SlateLinesModal({
     const totalGames = new Set(players.map(p => p.matchup).filter(Boolean)).size
     const inWindow = window === null ? players : players.filter(p => slateWindowOf(p.starts_at) === window)
 
-    // A TD lay is only ever about touchdowns, so everything else is noise on it. Matched on
-    // the prop's own name rather than a hardcoded list, so a touchdown prop added later is
-    // included without anyone remembering to come back here.
+    // A TD lay is only ever about touchdowns, so everything else is noise on it.
     const tdOnly = slateType === SlateType.TD
     const available = tdOnly
         ? inWindow
-            .map(p => ({ ...p, lines: p.lines.filter(l => l.prop_type.includes("TD")) }))
+            .map(p => ({ ...p, lines: p.lines.filter(l => SCORING_TD_PROPS.has(l.prop_type)) }))
             .filter(p => p.lines.length > 0)
+            // Shortest price first, which on a TD board is likeliest scorer first. American
+            // odds never fall between -100 and +100, so they order numerically without any
+            // conversion: -260 is a back who will get goal-line carries, +1300 is a third
+            // receiver. Alphabetical is the right default when every row is a different
+            // question, but here every row is the same question and the price is the answer.
+            .sort(compareByTdPrice)
         : inWindow
 
     // The whole slate is shown until it is narrowed. Search filters it rather than
@@ -625,10 +666,14 @@ export default function SlateLinesModal({
                             <Text style={{ ...typography.heading, color: colors.textPrimary }}>
                                 Browse Lines
                             </Text>
-                            {/* Said plainly rather than implied: these move, and the free
-                                feed only refreshes every quarter of an hour. */}
+                            {/* Which day, then how fresh. The date used to vanish the
+                                moment the slate loaded, which left no way to tell a lay
+                                dated Monday from one dated Sunday — and those are entirely
+                                different boards, since Monday holds exactly one game. The
+                                weekday is spelled out because that is the part that makes a
+                                wrong date obvious at a glance. */}
                             <Text style={{ ...typography.small, color: colors.textMuted }}>
-                                {fetchedAt ? `Updated ${relativeTime(fetchedAt)}` : date}
+                                {slateDateLabel(date)}{fetchedAt ? `  ·  updated ${relativeTime(fetchedAt)}` : ""}
                             </Text>
                         </View>
                         {/* Sits with the title rather than pushed to the far edge: it is
@@ -649,7 +694,10 @@ export default function SlateLinesModal({
                         other view would be busywork. */}
                     <View style={{ marginTop: spacing.md }}>
                         <TabButtons<Mode>
-                            tabs={MODES as unknown as Mode[]}
+                            // By prop is dropped on a TD lay: with one prop on offer it
+                            // would be a list of length one leading to the board you were
+                            // already looking at.
+                            tabs={(tdOnly ? MODES.filter(m => m !== "By prop") : MODES) as unknown as Mode[]}
                             activeTab={mode}
                             setActiveTab={next => { setSelectedProp(null); setSelectedGame(null); setMode(next) }}
                             getKey={m => m}

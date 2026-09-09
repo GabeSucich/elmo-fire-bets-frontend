@@ -13,6 +13,7 @@ import ParlayEditorModal from "./modals/ParlayEditorModal";
 import { ACTION_ICON_SIZE, colors, shadows, typography, spacing } from "@/theme/colors";
 import { slateTypeDisplay } from "./common";
 import Collapsible from "../reusable/Collapsible";
+import { slateDateShort } from "@/util/slateDate";
 
 interface ParlayCardProps {
   parlay: ParlayResponseData;
@@ -63,10 +64,9 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
   };
 
   function formattedDate() {
-    const date = new Date(parlay.competition_date)
-    const dayStr = date.getDate().toString().padStart(2, '0')
-    const monthStr = (date.getMonth() + 1).toString().padStart(2, '0')
-    return `${monthStr}/${dayStr}`
+    // See util/slateDate: a bare date string read through `new Date` lands on the previous
+    // evening in Pacific, so every lay used to show the day before the one it is played on.
+    return slateDateShort(parlay.competition_date)
   }
 
   const isBuilding = parlay.state === ParlayState.BUILDING
