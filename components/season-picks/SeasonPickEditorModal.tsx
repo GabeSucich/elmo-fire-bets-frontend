@@ -21,6 +21,7 @@ import {
     playerTeamResultToRequestData,
 } from "@/util/executePlayerSearch"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
+import { makeSortedSeasonBetTypes } from "@/util/betTypes"
 
 type Props = {
     visible: boolean
@@ -210,7 +211,7 @@ export default function SeasonPickEditorModal(props: Props) {
                             <Label>Prop</Label>
                             <SelectableTileGroup<PropBetType>
                                 selectedItem={propType}
-                                items={Object.values(PropBetType)}
+                                items={makeSortedSeasonBetTypes()}
                                 handleSelect={setPropType}
                                 itemDisplay={p => p}
                                 itemKey={p => p}

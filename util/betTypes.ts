@@ -33,6 +33,23 @@ const BET_TYPE_SORT_MAP: Record<PropBetType, {
 
 const TEAM_ONLY_BET_TYPES = [PropBetType.FGS]
 
+/**
+ * Markets a season-long pick cannot settle, because their season figure is the best
+ * single game rather than the sum of every game.
+ *
+ * Season progress adds each week's value up, which is right for a stat you accumulate
+ * and nonsense for one you only ever set a new best in — fifteen weeks of a longest
+ * reception sum to 329 yards for a player whose longest all year was 45. Rather than
+ * teach progress a second kind of arithmetic for four markets nobody has picked, they
+ * are simply not offered.
+ */
+const SEASON_UNSUPPORTED_BET_TYPES = [
+    PropBetType.LONGEST_RUSH,
+    PropBetType.LONGEST_RECEPTION,
+    PropBetType.LONGEST_TD,
+    PropBetType.LONGEST_COMPLETION,
+]
+
 export function makeSortedBetTypes(): PropBetType[] {
     return Object.values(PropBetType).sort((a, b) => {
         return BET_TYPE_SORT_MAP[a].order - BET_TYPE_SORT_MAP[b].order
@@ -49,4 +66,8 @@ export function makeSortedPlayerBetTypes(): PropBetType[] {
 
 export function makeSortedTeamBetTypes(): PropBetType[] {
     return makeSortedBetTypes().filter(bt => TEAM_ONLY_BET_TYPES.includes(bt))
+}
+
+export function makeSortedSeasonBetTypes(): PropBetType[] {
+    return makeSortedBetTypes().filter(bt => !SEASON_UNSUPPORTED_BET_TYPES.includes(bt))
 }

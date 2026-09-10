@@ -15,7 +15,7 @@ import OverlayLoader from "@/components/reusable/OverlayLoader"
 import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { SeasonPicksData } from "@/composables/useSeasonPicks"
-import { calculatePace, calculateRequirement, Pace, paceColor } from "@/util/pace"
+import { calculatePace, calculateRequirement, Pace, paceColor, PickShape } from "@/util/pace"
 import { formatLine, formatRate, formatStat } from "@/util/statFormat"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
 import SeasonPickEditorModal from "./SeasonPickEditorModal"
@@ -36,6 +36,30 @@ const STATUS_COLOR: Record<SeasonPickStatus, string> = {
 /** "Wins" for a team total, otherwise the prop's own market name. */
 function statLabel(pick: SeasonPickResponseData): string {
     return pick.kind === SeasonPickKind.TEAM_WINS ? "Wins" : (pick.prop_type ?? "")
+}
+
+/**
+ * "1 Win", not "1 Wins".
+ *
+ * Trailing -s only, which is how every market that pluralises does it — Targets, TDs,
+ * FGs, Receptions — and which leaves the ones that do not, like "Longest Rush", alone
+ * by the same rule.
+ */
+function countLabel(pick: SeasonPickResponseData, value: number): string {
+    const label = statLabel(pick)
+    return value === 1 && label.endsWith("s") ? label.slice(0, -1) : label
+}
+
+/** The pick as the pace maths wants it, so both figures are handed the same inputs. */
+function shapeOf(pick: SeasonPickResponseData): PickShape {
+    return {
+        total: pick.progress.total,
+        line: pick.line,
+        gamesElapsed: pick.progress.games_elapsed,
+        direction: pick.direction,
+        kind: pick.kind,
+        propType: pick.prop_type ?? null,
+    }
 }
 
 /** Where the spectrum puts this pick, falling back to its status before any game. */
@@ -73,13 +97,13 @@ function SeasonPickLine({ pick }: { pick: SeasonPickResponseData }) {
  * long before the line itself is anywhere near reached.
  */
 function PickStats({ pick }: { pick: SeasonPickResponseData }) {
-    const pace = calculatePace(pick.progress.total, pick.line, pick.progress.games_elapsed)
+    const pace = calculatePace(shapeOf(pick))
     const color = statColor(pick, pace)
 
     return (
         <View style={styles.pickTotalRow}>
             <Text style={[styles.pickTotal, { color }]}>{formatStat(pick.progress.total)}</Text>
-            <Text style={styles.pickTotalUnit}>{statLabel(pick)}</Text>
+            <Text style={styles.pickTotalUnit}>{countLabel(pick, pick.progress.total)}</Text>
         </View>
     )
 }
@@ -91,10 +115,7 @@ function PickStats({ pick }: { pick: SeasonPickResponseData }) {
  * good without saying how much stat that actually is week to week.
  */
 function requirementText(pick: SeasonPickResponseData): string | null {
-    const needed = calculateRequirement(
-        pick.progress.total, pick.line, pick.progress.games_elapsed,
-        pick.direction, pick.kind, pick.prop_type ?? null,
-    )
+    const needed = calculateRequirement(shapeOf(pick))
     if (!needed) return null
 
     // Wins are won whole and counted whole. A rate per game says nothing a team can act
@@ -105,7 +126,10 @@ function requirementText(pick: SeasonPickResponseData): string | null {
     }
 
     const bound = needed.atLeast ? "at least" : "under"
-    return `Needs ${bound} ${formatRate(needed.perGame, needed.atLeast)} ${statLabel(pick)}/game`
+    const rate = formatRate(needed.perGame, needed.atLeast)
+    // Plural regardless: a rate is "0.5 TDs a game", and the one-decimal "1.0" that would
+    // trip a singular is still a rate rather than a count of one.
+    return `Needs ${bound} ${rate} ${statLabel(pick)}/game`
 }
 
 /**
@@ -130,7 +154,7 @@ function PaceBar({ pace, color }: { pace: Pace | null, color: string }) {
 }
 
 function PickFooter({ pick }: { pick: SeasonPickResponseData }) {
-    const pace = calculatePace(pick.progress.total, pick.line, pick.progress.games_elapsed)
+    const pace = calculatePace(shapeOf(pick))
     const color = statColor(pick, pace)
     const needs = requirementText(pick)
 
@@ -154,8 +178,34 @@ function PickFooter({ pick }: { pick: SeasonPickResponseData }) {
     )
 }
 
+/**
+ * How many of a gambler's picks are on pace, over the picks that have started.
+ *
+ * A pick with no result yet has no rate to judge, so it is left out of both halves
+ * rather than counted as behind — otherwise a season nobody has played would read as one
+ * everybody is failing. Null when none have started, which is the same condition as every
+ * card showing a dash.
+ *
+ * On pace is the rate at or past 100% for an over, and short of it for an under. The two
+ * rules partition every started pick, so the pair always adds up.
+ */
+function trackingSummary(picks: SeasonPickResponseData[]): string | null {
+    const started = picks
+        .map(pick => ({ pick, pace: calculatePace(shapeOf(pick)) }))
+        .filter((entry): entry is { pick: SeasonPickResponseData, pace: Pace } => entry.pace !== null)
+
+    if (started.length === 0) return null
+
+    const onPace = started.filter(({ pick, pace }) =>
+        pick.direction === PropBetDirection.OVER ? pace.index >= 1 : pace.index < 1
+    ).length
+
+    return `${onPace}/${started.length} picks on track`
+}
+
 type GamblerCardProps = {
     name: string
+    tracking: string | null
     pickCount: number
     allowance: number
     showAllowance: boolean
@@ -164,13 +214,16 @@ type GamblerCardProps = {
 
 /** One gambler's picks, collapsible so a five-person season stays scannable. Open by
  *  default, since seeing the picks is the point of the tab. */
-function GamblerCard({ name, pickCount, allowance, showAllowance, children }: GamblerCardProps) {
+function GamblerCard({ name, tracking, pickCount, allowance, showAllowance, children }: GamblerCardProps) {
     const [expanded, setExpanded] = useState(true)
 
     return (
         <View style={styles.card}>
             <Pressable style={styles.cardHeader} onPress={() => setExpanded(open => !open)}>
-                <Text style={styles.gamblerName}>{name}</Text>
+                <Text style={styles.gamblerName} numberOfLines={1}>{name}</Text>
+                {tracking !== null && (
+                    <Text style={styles.trackingCount}>{tracking}</Text>
+                )}
                 {showAllowance && (
                     <Text style={styles.pickCount}>{pickCount}/{allowance}</Text>
                 )}
@@ -259,6 +312,7 @@ export default function SeasonPicks({ season }: Props) {
                     <GamblerCard
                         key={gambler.id}
                         name={gambler.firstName}
+                        tracking={trackingSummary(picks)}
                         pickCount={picks.length}
                         allowance={season.pickCount}
                         showAllowance={season.latestOpenWeek === 0}
@@ -417,6 +471,7 @@ const styles = StyleSheet.create({
     cardBody: { gap: spacing.sm, paddingTop: spacing.sm },
     gamblerName: { ...typography.heading, color: colors.textPrimary, flex: 1 },
     pickCount: { ...typography.caption, color: colors.textMuted },
+    trackingCount: { ...typography.caption, color: colors.textSecondary, fontWeight: "600" },
     cardFooter: { flexDirection: "row", justifyContent: "flex-end" },
     addButton: {
         paddingVertical: spacing.xs, paddingHorizontal: spacing.md,

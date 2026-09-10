@@ -18,9 +18,9 @@ type Props = {
 
 type AnalyticsTabsParamList = {
     Leaderboard: undefined
-    "Time Series": undefined
-    "Pick Trends": undefined
     "Season Picks": undefined
+    "Pick Trends": undefined
+    "Time Series": undefined
 }
 
 const Tab = createMaterialTopTabNavigator<AnalyticsTabsParamList>()
@@ -78,14 +78,6 @@ export default function AnalyticsView(props: Props) {
             >
                 {() => <Leaderboard performances={performances} />}
             </Tab.Screen>
-            <Tab.Screen
-                name="Pick Trends"
-                options={{
-                    tabBarIcon: ({ color }) => <MaterialCommunityIcons name="trending-up" size={18} color={color} />,
-                }}
-            >
-                {() => <Trends performances={performances} />}
-            </Tab.Screen>
             {seasonPicks.enabled && (
                 <Tab.Screen
                     name="Season Picks"
@@ -96,6 +88,14 @@ export default function AnalyticsView(props: Props) {
                     {() => <SeasonPicks season={seasonPicks} />}
                 </Tab.Screen>
             )}
+            <Tab.Screen
+                name="Pick Trends"
+                options={{
+                    tabBarIcon: ({ color }) => <MaterialCommunityIcons name="trending-up" size={18} color={color} />,
+                }}
+            >
+                {() => <Trends performances={performances} />}
+            </Tab.Screen>
             <Tab.Screen
                 name="Time Series"
                 options={{

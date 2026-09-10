@@ -11,19 +11,41 @@ import { colors } from "@/theme/colors"
  */
 export const GAMES_PER_SEASON = 17
 
+/** Everything either figure below needs, so the two cannot be handed different inputs. */
+export type PickShape = {
+    total: number
+    line: number
+    gamesElapsed: number
+    direction: PropBetDirection
+    kind: SeasonPickKind
+    propType: PropBetType | null
+}
+
 export type Pace = {
-    /** Share of the line reached so far, 0.3 for 330 of 1100. */
+    /** Share of the target reached so far, 0.3 for 330 of a 1100 target. */
     toGoal: number
-    /** toGoal divided by the share of the season played: 30% of the line at 20% of the
-     *  season is 1.5, meaning one and a half times the rate the line needs. */
+    /** toGoal divided by the share of the season played: 30% of the target at 20% of the
+     *  season is 1.5, meaning one and a half times the rate the target needs. */
     index: number
 }
 
-export function calculatePace(total: number, line: number, gamesElapsed: number): Pace | null {
-    // Undefined before anyone has played, and a zero line has no goal to be a share of.
-    if (gamesElapsed <= 0 || line <= 0) return null
-    const toGoal = total / line
-    return { toGoal, index: toGoal / (gamesElapsed / GAMES_PER_SEASON) }
+/**
+ * How far along the pick is, and whether that is fast enough.
+ *
+ * Measured against the target rather than the line, for the same reason the required
+ * rate is: nobody scores 8.5 touchdowns. An over on 8.5 has to reach 9, so one score
+ * after one game is 1/9 of the way at 1/17 of the season — 189%, not the 200% that
+ * dividing by 8.5 gives. The two figures on a card would otherwise be reasoning about
+ * different numbers.
+ */
+export function calculatePace(pick: PickShape): Pace | null {
+    // Undefined before anyone has played, and a target of zero has no share to be of —
+    // an under on 0.5, where the first unit of the stat settles it.
+    const target = targetFor(pick)
+    if (pick.gamesElapsed <= 0 || target <= 0) return null
+
+    const toGoal = pick.total / target
+    return { toGoal, index: toGoal / (pick.gamesElapsed / GAMES_PER_SEASON) }
 }
 
 function lerpChannel(from: number, to: number, t: number) {
@@ -54,16 +76,6 @@ export function paceColor(index: number, direction: PropBetDirection): string {
         : lerpHex(colors.warning, colors.success, (ahead - 0.5) / 0.5)
 }
 
-export type Requirement = {
-    /** Stat still to come: what an over must add, or the most an under can afford. */
-    remaining: number
-    /** That figure per remaining game, stated as a bound the average has to satisfy —
-     *  an over must meet it, an under must stay strictly below it. */
-    perGame: number
-    /** True for an over. */
-    atLeast: boolean
-}
-
 /** Stats that move in half increments: a sack can be shared, and a tie is half a win. */
 const HALF_STEP: ReadonlySet<PropBetType> = new Set([PropBetType.SACKS])
 
@@ -77,6 +89,38 @@ function gridStep(kind: SeasonPickKind, propType: PropBetType | null): number {
 // below have to survive a float that is a hair either side of it.
 const EPSILON = 1e-9
 
+/** The lowest reachable total that beats the line. */
+function overTarget(line: number, step: number): number {
+    return Math.floor(line / step + EPSILON) * step + step
+}
+
+/** The highest reachable total that stays short of it. */
+function underTarget(line: number, step: number): number {
+    return Math.ceil(line / step - EPSILON) * step - step
+}
+
+/**
+ * The total this pick is actually aiming at: the first one past the line for an over,
+ * the last one short of it for an under. Both figures on a card come from here, so
+ * neither can drift onto a target the other is not using.
+ */
+export function targetFor(pick: PickShape): number {
+    const step = gridStep(pick.kind, pick.propType)
+    return pick.direction === PropBetDirection.OVER
+        ? overTarget(pick.line, step)
+        : underTarget(pick.line, step)
+}
+
+export type Requirement = {
+    /** Stat still to come: what an over must add, or the most an under can afford. */
+    remaining: number
+    /** That figure per remaining game, stated as a bound the average has to satisfy —
+     *  an over must meet it, an under must stay strictly below it. */
+    perGame: number
+    /** True for an over. */
+    atLeast: boolean
+}
+
 /**
  * The rest of the season, as a number someone can actually act on.
  *
@@ -88,27 +132,17 @@ const EPSILON = 1e-9
  * Null once the answer stops being useful: no games left, an over already clear of the
  * line, or an under already past saving.
  */
-export function calculateRequirement(
-    total: number,
-    line: number,
-    gamesElapsed: number,
-    direction: PropBetDirection,
-    kind: SeasonPickKind,
-    propType: PropBetType | null,
-): Requirement | null {
-    const gamesLeft = GAMES_PER_SEASON - gamesElapsed
+export function calculateRequirement(pick: PickShape): Requirement | null {
+    const gamesLeft = GAMES_PER_SEASON - pick.gamesElapsed
     if (gamesLeft <= 0) return null
 
-    const step = gridStep(kind, propType)
-    // The lowest reachable total that beats the line, and the highest that stays short.
-    const over = Math.floor(line / step + EPSILON) * step + step
-    const under = Math.ceil(line / step - EPSILON) * step - step
-
-    const isOver = direction === PropBetDirection.OVER
-    const remaining = (isOver ? over : under) - total
+    const isOver = pick.direction === PropBetDirection.OVER
+    const target = targetFor(pick)
+    const remaining = target - pick.total
     // An under is phrased against the total one step further on, so "less than" reads as
     // a bound the average must stay strictly below rather than one it may equal.
-    const perGame = ((isOver ? over : under + step) - total) / gamesLeft
+    const step = gridStep(pick.kind, pick.propType)
+    const perGame = ((isOver ? target : target + step) - pick.total) / gamesLeft
 
     // An over with nothing left to add has already cleared. An under can legitimately
     // have exactly nothing left to spend and still be live, so only a deficit kills it.
