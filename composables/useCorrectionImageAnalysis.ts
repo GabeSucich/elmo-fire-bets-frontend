@@ -7,6 +7,7 @@ import { getPickLine } from "@/util/picks"
 import { File } from "expo-file-system"
 import * as ImagePicker from "expo-image-picker"
 import { useState } from "react"
+import { formatLine } from "@/util/statFormat"
 
 /** Mirrors MAX_IMAGES in the corrections router. */
 const MAX_IMAGES = 6
@@ -78,7 +79,7 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
                 looseTargetMatch: suggestion?.loose_target_match ?? false,
                 // Where the slip had nothing to say, the pick's own line stands. Submitting
                 // it unchanged is how a pick gets confirmed as already correct.
-                value: pick ? (suggestion?.suggested_number ?? getPickLine(pick)).toFixed(1) : '',
+                value: pick ? formatLine(suggestion?.suggested_number ?? getPickLine(pick)) : '',
                 edit: null,
             }
         })

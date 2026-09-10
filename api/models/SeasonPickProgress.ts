@@ -8,6 +8,7 @@ export type SeasonPickProgress = {
     total: number;
     weeks_recorded: number;
     weeks_played: number;
+    games_elapsed: number;
     missing_weeks: Array<number>;
     next_week_to_enter: (number | null);
     status: SeasonPickStatus;

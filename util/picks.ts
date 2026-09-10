@@ -1,4 +1,5 @@
 import { PickResponseData, PropBetDirection, SauceFactor, VetoApprovalStatus } from "@/api"
+import { formatLine } from "@/util/statFormat"
 
 
 /**
@@ -71,7 +72,7 @@ export const PickDisplayUtil = {
             sauceSuffix = ' 🌶️'
         }
 
-        const lineToUse = (corrected_line ?? line).toFixed(1)
+        const lineToUse = formatLine(corrected_line ?? line)
         return {
             lineDisplay: `${correctedDirection} ${lineToUse}${sauceSuffix}${vetoedSuffix}`,
             directionDisplay: correctedDirection

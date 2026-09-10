@@ -6,5 +6,6 @@ export type SeasonPickWeekProgress = {
     week: number;
     played: boolean;
     value: (number | null);
+    team_played: (boolean | null);
 };
 

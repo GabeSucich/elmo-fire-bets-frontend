@@ -4,6 +4,7 @@ import { getPickLine, PickDisplayUtil } from "@/util/picks";
 import React from "react";
 import { Text, View } from "react-native";
 import { getSizeStyles, TileSize } from "../reusable/tiles/common";
+import { formatLine } from "@/util/statFormat"
 
 /**
  * The size the market text is drawn at.
@@ -80,7 +81,7 @@ export default function PickDisplay({ pick, showVeto = true, size = "sm", showTa
                 fontSize: fontSize + 4,
                 fontWeight: '700',
                 marginRight: spacing.sm,
-            }}>{getPickLine(pick).toFixed(1)}</Text>
+            }}>{formatLine(getPickLine(pick))}</Text>
             <Text style={{
                 color: colors.textSecondary,
                 fontSize: pickMarketFontSize(size),

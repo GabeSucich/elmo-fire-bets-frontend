@@ -15,7 +15,8 @@ import OverlayLoader from "@/components/reusable/OverlayLoader"
 import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { SeasonPicksData } from "@/composables/useSeasonPicks"
-import { calculatePace, paceColor } from "@/util/pace"
+import { calculatePace, calculateRequirement, Pace, paceColor } from "@/util/pace"
+import { formatLine, formatRate, formatStat } from "@/util/statFormat"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
 import SeasonPickEditorModal from "./SeasonPickEditorModal"
 import WeekProgressModal from "./WeekProgressModal"
@@ -32,41 +33,124 @@ const STATUS_COLOR: Record<SeasonPickStatus, string> = {
     [SeasonPickStatus.PENDING]: colors.textSecondary,
 }
 
+/** "Wins" for a team total, otherwise the prop's own market name. */
+function statLabel(pick: SeasonPickResponseData): string {
+    return pick.kind === SeasonPickKind.TEAM_WINS ? "Wins" : (pick.prop_type ?? "")
+}
+
+/** Where the spectrum puts this pick, falling back to its status before any game. */
+function statColor(pick: SeasonPickResponseData, pace: Pace | null): string {
+    return pace ? paceColor(pace.index, pick.direction) : STATUS_COLOR[pick.progress.status]
+}
+
 /**
  * The line and market, rendered the same way as a parlay pick: a coloured caret carries
  * the direction, the line leads, and the market follows in supporting weight.
  */
 function SeasonPickLine({ pick }: { pick: SeasonPickResponseData }) {
     const isOver = pick.direction === PropBetDirection.OVER
-    const market = pick.kind === SeasonPickKind.TEAM_WINS ? "wins" : pick.prop_type
 
     return (
         <View style={styles.lineRow}>
             <Text style={[styles.caret, { color: isOver ? colors.success : colors.danger }]}>
                 {isOver ? "▲" : "▼"}
             </Text>
-            <Text style={styles.lineValue}>{pick.line.toFixed(1)}</Text>
-            <Text style={styles.lineMarket}>{market}</Text>
+            <Text style={styles.lineValue}>{formatLine(pick.line)}</Text>
+            <Text style={styles.lineMarket}>{statLabel(pick)}</Text>
         </View>
     )
 }
 
 /**
- * How far along the bet is, and whether that is fast enough.
+ * Where the pick stands: the stat so far, and the rate that implies.
  *
- * The percentage alone cannot say — 30% of the line is excellent in week 3 and dire in
- * week 15 — so the rate it implies is carried entirely by colour: the share of the line
- * reached, divided by the share of the season played. The scale flips for an under.
+ * The raw share of the line cannot say whether that rate is any good — 30% of the line
+ * is excellent in week 3 and dire in week 15 — so what is shown is the pace figure: the
+ * share of the line reached over the share of the season played. 100% is exactly on
+ * pace. Colour runs the same scale and flips for an under.
+ *
+ * "Tracking at 100%" is dead on the required rate, and the figure can sit well over 100%
+ * long before the line itself is anywhere near reached.
  */
-function PaceLabel({ pick }: { pick: SeasonPickResponseData }) {
-    const pace = calculatePace(pick.progress.total, pick.line, pick.progress.weeks_played)
-    if (!pace) {
-        return <Text style={styles.pickWeeks}>—</Text>
-    }
+function PickStats({ pick }: { pick: SeasonPickResponseData }) {
+    const pace = calculatePace(pick.progress.total, pick.line, pick.progress.games_elapsed)
+    const color = statColor(pick, pace)
+
     return (
-        <Text style={[styles.pickWeeks, { color: paceColor(pace.index, pick.direction) }]}>
-            {(pace.toGoal * 100).toFixed(0)}%
-        </Text>
+        <View style={styles.pickTotalRow}>
+            <Text style={[styles.pickTotal, { color }]}>{formatStat(pick.progress.total)}</Text>
+            <Text style={styles.pickTotalUnit}>{statLabel(pick)}</Text>
+        </View>
+    )
+}
+
+/**
+ * What the rest of the season has to look like, per game.
+ *
+ * The tracking percentage cannot carry this on its own: it says whether the rate is
+ * good without saying how much stat that actually is week to week.
+ */
+function requirementText(pick: SeasonPickResponseData): string | null {
+    const needed = calculateRequirement(
+        pick.progress.total, pick.line, pick.progress.games_elapsed,
+        pick.direction, pick.kind, pick.prop_type ?? null,
+    )
+    if (!needed) return null
+
+    // Wins are won whole and counted whole. A rate per game says nothing a team can act
+    // on, so the requirement is stated as the games themselves.
+    if (pick.kind === SeasonPickKind.TEAM_WINS) {
+        const wins = `${formatStat(needed.remaining)} more ${needed.remaining === 1 ? "win" : "wins"}`
+        return needed.atLeast ? `Needs ${wins}` : `Can afford ${wins}`
+    }
+
+    const bound = needed.atLeast ? "at least" : "under"
+    return `Needs ${bound} ${formatRate(needed.perGame, needed.atLeast)} ${statLabel(pick)}/game`
+}
+
+/**
+ * The two derived readings on one line: what the rest of the season has to look like,
+ * and the rate reached so far. They answer the same question from either end, so they
+ * sit on the same baseline rather than one hanging off the stat above it.
+ */
+function PaceBar({ pace, color }: { pace: Pace | null, color: string }) {
+    if (!pace) return null
+
+    // The literal share of the line reached, not the tracking figure beside it: the bar
+    // answers "how much of the number is in the bag", which the pace percentage cannot,
+    // since that one sits over 100% while the line is still most of a season away.
+    // Clamped at full for a line already beaten.
+    const filled = Math.max(0, Math.min(1, pace.toGoal))
+
+    return (
+        <View style={styles.paceTrack}>
+            <View style={[styles.paceFill, { width: `${filled * 100}%`, backgroundColor: color }]} />
+        </View>
+    )
+}
+
+function PickFooter({ pick }: { pick: SeasonPickResponseData }) {
+    const pace = calculatePace(pick.progress.total, pick.line, pick.progress.games_elapsed)
+    const color = statColor(pick, pace)
+    const needs = requirementText(pick)
+
+    return (
+        <View style={styles.pickFooterBlock}>
+            <View style={styles.pickFooter}>
+                {needs !== null && <Text style={styles.needsLine}>{needs}</Text>}
+                <Text style={[styles.pickPace, styles.pickPaceRight]}>
+                    {pace
+                        ? <>
+                            {"Tracking at "}
+                            <Text style={[styles.pickPaceValue, { color }]}>
+                                {(pace.index * 100).toFixed(0)}%
+                            </Text>
+                        </>
+                        : "—"}
+                </Text>
+            </View>
+            <PaceBar pace={pace} color={color} />
+        </View>
     )
 }
 
@@ -201,14 +285,10 @@ export default function SeasonPicks({ season }: Props) {
                                         <SeasonPickLine pick={pick} />
                                     </View>
 
-                                    <View style={styles.pickStats}>
-                                        <Text style={[styles.pickTotal, { color: STATUS_COLOR[pick.progress.status] }]}>
-                                            {pick.progress.total}
-                                        </Text>
-                                        <PaceLabel pick={pick} />
-                                    </View>
-
+                                    <PickStats pick={pick} />
                                 </View>
+
+                                <PickFooter pick={pick} />
 
                                 {/* Every action lives on its own row, so the pick itself reads the
                                     same whoever is looking at it and whatever they are allowed to do. */}
@@ -349,7 +429,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.backgroundSecondary, borderRadius: 10,
         gap: spacing.sm,
     },
-    pickRowMain: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    pickRowMain: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
     actionBar: {
         flexDirection: "row", justifyContent: "flex-end", flexWrap: "wrap",
         gap: spacing.xs, borderTopWidth: 1, borderTopColor: colors.cardBorder,
@@ -366,9 +446,24 @@ const styles = StyleSheet.create({
         fontWeight: "700", marginRight: spacing.sm,
     },
     lineMarket: { ...typography.caption, color: colors.textSecondary },
-    pickStats: { alignItems: "flex-end", minWidth: 56 },
-    pickTotal: { ...typography.heading, fontWeight: "700" },
-    pickWeeks: { ...typography.small, color: colors.textMuted },
+    pickTotalRow: {
+        flexDirection: "row", alignItems: "baseline", justifyContent: "flex-end",
+        gap: spacing.xs, minWidth: 96,
+    },
+    pickTotal: { ...typography.title },
+    pickTotalUnit: { ...typography.caption, color: colors.textSecondary },
+    pickFooterBlock: { gap: spacing.xs },
+    pickFooter: { flexDirection: "row", alignItems: "baseline", gap: spacing.sm },
+    paceTrack: {
+        height: 4, borderRadius: 2, overflow: "hidden",
+        backgroundColor: colors.cardBorder,
+    },
+    paceFill: { height: "100%", borderRadius: 2 },
+    pickPace: { ...typography.small, color: colors.textMuted },
+    // Holds the rate to the right edge whether or not a requirement sits beside it.
+    pickPaceRight: { marginLeft: "auto" },
+    pickPaceValue: { fontWeight: "700" },
+    needsLine: { ...typography.small, color: colors.textMuted, flexShrink: 1 },
     actionChip: {
         paddingVertical: 4, paddingHorizontal: spacing.sm,
         borderRadius: 12, backgroundColor: colors.card,
