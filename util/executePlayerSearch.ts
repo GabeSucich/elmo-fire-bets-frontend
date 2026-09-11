@@ -1,5 +1,6 @@
 import { PropBetTargetRequestData } from "@/api"
 import axios from "axios"
+import { fallbackSearchTerms } from "@/util/nameMatch"
 
 export type PlayerTeamResult = {
     identifier: string
@@ -41,6 +42,38 @@ export function executePlayerTeamSearch(term: string) {
         axios.get(makeSearchUrl(term, "player")).then(data => transformPlayerResults(data.data.items)),
         axios.get(makeSearchUrl(term, "team")).then(data => transformTeamResults(data.data.items))
     ]).then(([playerResults, teamResults]) => [...playerResults, ...teamResults])
+}
+
+/**
+ * The same search, widened when a name finds nobody.
+ *
+ * A sportsbook's spelling is not always ESPN's, and when it differs badly enough the
+ * search comes back empty and the pick becomes a dead end — "that name did not match
+ * anyone, enter it by hand". Trying the surname, then the forename, turns that into a
+ * short list to choose from.
+ *
+ * Only ever widens what is offered. The caller decides what a match is, and nothing that
+ * comes back from a narrower term should be taken as one on its own — a search for "Sims"
+ * answers with every Sims in the league.
+ */
+export async function searchPlayersWithFallback(term: string): Promise<PlayerTeamResult[]> {
+    const direct = await executePlayerTeamSearch(term)
+    if (direct.length > 0) return direct
+
+    const seen = new Set<string>()
+    const widened: PlayerTeamResult[] = []
+    for (const fallback of fallbackSearchTerms(term)) {
+        const found = await axios
+            .get(makeSearchUrl(fallback, "player"))
+            .then(data => transformPlayerResults(data.data.items))
+            .catch(() => [] as PlayerTeamResult[])
+        for (const candidate of found) {
+            if (seen.has(candidate.identifier)) continue
+            seen.add(candidate.identifier)
+            widened.push(candidate)
+        }
+    }
+    return widened
 }
 
 export function playerTeamDisplay(t: PlayerTeamResult) {

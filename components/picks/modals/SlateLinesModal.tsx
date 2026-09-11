@@ -17,7 +17,8 @@ import {
 } from "@/composables/useSlateLines"
 import SlateWindowFilter from "@/components/picks/SlateWindowFilter"
 import { PickPrefill } from "@/components/picks/PickEditor"
-import { executePlayerTeamSearch, PlayerTeamResult, playerTeamDisplay } from "@/util/executePlayerSearch"
+import { PlayerTeamResult, playerTeamDisplay, searchPlayersWithFallback } from "@/util/executePlayerSearch"
+import { namesMatch } from "@/util/nameMatch"
 import { slateDateLabel } from "@/util/slateDate"
 import { parseAmericanOdds } from "@/util/picks"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
@@ -490,9 +491,12 @@ export default function SlateLinesModal({
         Keyboard.dismiss()
         setResolvingKey(sideKey(player.name, propType, line, direction))
         try {
-            const candidates = await executePlayerTeamSearch(player.name)
-            const byName = candidates.filter(c =>
-                c.playerName?.toLowerCase() === player.name.toLowerCase())
+            const candidates = await searchPlayersWithFallback(player.name)
+            // Compared on what both sources agree about rather than character for
+            // character: a suffix or a full stop one of them carries and the other does
+            // not was sending thirty-nine names on a slate to this dialog with the right
+            // answer already sitting in the list.
+            const byName = candidates.filter(c => c.playerName && namesMatch(c.playerName, player.name))
 
             // The name decides it. Team is only consulted to break a tie between players who
             // share one, never to confirm a lone match: the two sources do not agree on
