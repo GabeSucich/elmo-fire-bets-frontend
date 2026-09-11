@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useListParlays } from "@/composables/useListParlays"
 import { View, TouchableOpacity, StyleSheet } from "react-native"
 import ParlayTabButtons from "@/components/reusable/TabButtons"
@@ -24,6 +24,9 @@ export default function ParlaysView(props: Props) {
 
     const [activeTab, setActiveTab] = useState<ParlayTab>("Building")
     const [isModalVisible, setIsModalVisible] = useState(false)
+    // Whether the tab on screen is the one it should stay on: either the viewer picked it,
+    // or the open list has already had its say. Building is only the opening guess.
+    const tabDecided = useRef(false)
 
     const {
         parlays: buildingParlays,
@@ -76,6 +79,21 @@ export default function ParlaysView(props: Props) {
         unlockParlay: unlockClosedParlay,
         reopenParlay: reopenClosedParlay
     } = useListParlays(props.seasonId, ParlayState.CLOSED, {sort: GetSeasonParlaysSortParam.DESC})
+
+    // Live parlays are the reason to open this screen, and they land a moment after it
+    // mounts — so Building is the guess made before the answer arrives, not a preference.
+    // Once, and only while the viewer has not picked a tab themselves: a switch that fired
+    // later would move the screen under someone already reading it.
+    useEffect(() => {
+        if (tabDecided.current || openParlays.length === 0) return
+        tabDecided.current = true
+        setActiveTab("Open")
+    }, [openParlays.length])
+
+    function chooseTab(tab: ParlayTab) {
+        tabDecided.current = true
+        setActiveTab(tab)
+    }
 
     // One spinner for the screen. Each list used to raise its own, so switching tabs
     // could show a list-level loader and a footer loader at once.
@@ -212,7 +230,7 @@ export default function ParlaysView(props: Props) {
                 <View style={{ flex: 1 }}>
                     <ParlayTabButtons<ParlayTab>
                         tabs={["Building", "Open", "Closed", "My Lays"]}
-                        setActiveTab={setActiveTab}
+                        setActiveTab={chooseTab}
                         activeTab={activeTab}
                         getDisplay={t => t === "My Lays" ? `${t} (${myLays().length})` : t}
                         getKey={t => t}
