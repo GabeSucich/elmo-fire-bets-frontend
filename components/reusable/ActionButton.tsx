@@ -11,6 +11,30 @@ import { colors, typography, spacing, shadows } from "@/theme/colors"
 const CONTENT_HEIGHT = 18
 const ICON_SIZE = 16
 
+/**
+ * The box an ActionButton draws, without the button.
+ *
+ * Exported so a label that sits in a row of buttons but does nothing — "Owned by Mark" —
+ * stands exactly as tall as they do. Copying the padding into the caller is how the two
+ * end up a pixel apart the next time either is touched.
+ */
+export const buttonBoxStyle = {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+} as const
+
+/** The line box inside it, so text in a static badge sits where a button's label does. */
+export const buttonContentStyle = {
+    height: CONTENT_HEIGHT,
+    justifyContent: 'center',
+} as const
+
+export const buttonLabelStyle = {
+    ...typography.caption,
+    lineHeight: CONTENT_HEIGHT,
+} as const
+
 type Props = {
     /** Optional when `icon` is given: an icon-only button still gets the same fill. */
     text?: string
@@ -52,9 +76,7 @@ export default function ActionButton({
         >
             <View style={{
                 backgroundColor: inactive ? disabledColor : color,
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderRadius: 8,
+                ...buttonBoxStyle,
                 ...shadows.card,
             }}>
                 {/* Kept in place while loading so the button holds its width instead of

@@ -6,5 +6,6 @@ import type { ExtractedLeg } from './ExtractedLeg';
 export type ExtractCorrectionLegsResponseData = {
     legs: Array<ExtractedLeg>;
     stated_leg_count: (number | null);
+    total_payout: (number | null);
 };
 

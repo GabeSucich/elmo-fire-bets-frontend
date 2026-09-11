@@ -11,6 +11,7 @@ export type ParlayResponseData = {
     owner_id: number;
     slate_type: SlateType;
     wager_pp: number;
+    payout_pp: (number | null);
     competition_date: string;
     picks: Array<PickResponseData>;
     state: ParlayState;

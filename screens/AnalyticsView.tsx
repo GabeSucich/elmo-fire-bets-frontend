@@ -26,14 +26,15 @@ type AnalyticsTabsParamList = {
 const Tab = createMaterialTopTabNavigator<AnalyticsTabsParamList>()
 
 export default function AnalyticsView(props: Props) {
-    const { performances, loading } = usePerformancesContext()
+    const { performances, initialized } = usePerformancesContext()
     // Loaded here rather than inside the tab: whether the tab exists at all depends on
     // the season's rules, which only come back with this call.
     const seasonPicks = useSeasonPicks(props.seasonId)
 
-    // Only the first load blocks: gating on every refresh would remount the tab
-    // navigator after each write and bounce the user back to the first tab.
-    if (loading || !seasonPicks.initialized) {
+    // Only the first load blocks. Gating on `loading` instead would unmount the navigator
+    // on every later refresh, and a remounted navigator opens on its first tab — so a pull
+    // to refresh on Season Picks would drop the viewer back on the Leaderboard.
+    if (!initialized || !seasonPicks.initialized) {
         return (
             <View style={{ flex: 1, backgroundColor: colors.background }}>
                 <ActivityLoader text="Loading analytics..." />

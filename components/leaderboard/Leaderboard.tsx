@@ -1,8 +1,11 @@
 import { GamblerPerformance, ScoreCorrection, ScoredMetrics } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
+import { usePerformancesContext } from "@/contexts/performancesContext";
+import { money } from "@/util/payout";
 import AnimatedAccordion from "@/components/reusable/AnimatedAccordion";
+import RefreshableScrollView from "@/components/reusable/RefreshableScrollView";
 import React, { useMemo, useState } from "react";
-import { Text, View, StyleSheet, Pressable, ScrollView } from "react-native";
+import { Text, View, StyleSheet, Pressable } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { colors, shadows, typography, spacing } from "@/theme/colors";
 
@@ -13,6 +16,7 @@ type Props = {
 export default function Leaderboard(props: Props) {
 
     const {gamblers} = useGamblingSeasonContext()
+    const { lossLedger, loading, reload } = usePerformancesContext()
 
     const sortedPerformanceData = useMemo(() => {
         const unsorted = Object.entries(props.performances).map(([_id, p]) => {
@@ -48,7 +52,12 @@ export default function Leaderboard(props: Props) {
     }, [props.performances, gamblers])
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <RefreshableScrollView
+            style={styles.container}
+            contentContainerStyle={styles.content}
+            onRefresh={reload}
+            refreshing={loading}
+        >
             {sortedPerformanceData.map(({gambler, performance, rank, tied, decimals}) => (
                 <LeaderboardCard
                     key={gambler.id}
@@ -57,9 +66,10 @@ export default function Leaderboard(props: Props) {
                     decimals={decimals}
                     name={gambler.firstName}
                     performance={performance}
+                    lossLedger={lossLedger[gambler.id] ?? 0}
                 />
             ))}
-        </ScrollView>
+        </RefreshableScrollView>
     )
 }
 
@@ -72,9 +82,11 @@ type CardProps = {
     decimals: number
     name: string
     performance: GamblerPerformance
+    /** What this gambler's bozos have cost. Zero where there is nothing to show. */
+    lossLedger: number
 }
 
-function LeaderboardCard({ rank, tied, decimals, name, performance }: CardProps) {
+function LeaderboardCard({ rank, tied, decimals, name, performance, lossLedger }: CardProps) {
     // Deductions and boosts read as one sentence rather than as separate chips, so a
     // gambler with two of them does not get a wall of coloured pills.
     const corrections: ScoreCorrection[] = [
@@ -97,21 +109,38 @@ function LeaderboardCard({ rank, tied, decimals, name, performance }: CardProps)
                                 <Text style={styles.rankText}>{tied ? `T${rank}` : rank}</Text>
                             </View>
                             <Text style={styles.name}>{name}</Text>
-                            {performance.scored_metrics.overall.curr_win_streak >= 3 && (
-                                <View style={styles.streakBadge}>
-                                    <Text style={styles.streakText}>🔥 {performance.scored_metrics.overall.curr_win_streak}</Text>
+                            {/* What the clown nose has actually cost everybody else. Beside
+                                the name rather than among the streaks: it is a running
+                                total for the season, not a state the gambler is currently
+                                in, and a money figure lost among the emoji read as one more
+                                of them. Only where a lay somebody bozoed has a payout
+                                recorded, so it appears as those get filled in rather than
+                                sitting at zero and looking broken. */}
+                            {lossLedger > 0 && (
+                                <View style={[styles.streakBadge, styles.ledgerBadge]}>
+                                    <Text style={styles.ledgerText}>− {money(lossLedger)}</Text>
                                 </View>
                             )}
-                            {performance.scored_metrics.overall.curr_loss_streak >= 3 && (
-                                <View style={[styles.streakBadge, styles.coldStreak]}>
-                                    <Text style={styles.streakText}>🧊 {performance.scored_metrics.overall.curr_loss_streak}</Text>
-                                </View>
-                            )}
-                            {performance.scored_metrics.overall.curr_bozo_streak >= 2 && (
-                                <View style={[styles.streakBadge, styles.bozoStreak]}>
-                                    <Text style={styles.streakText}>🤡 {performance.scored_metrics.overall.curr_bozo_streak}</Text>
-                                </View>
-                            )}
+                            {/* The streaks travel with the score, at the right. All three
+                                say how the last few lays have gone, which is what the
+                                percentage says too. */}
+                            <View style={styles.streakGroup}>
+                                {performance.scored_metrics.overall.curr_win_streak >= 3 && (
+                                    <View style={styles.streakBadge}>
+                                        <Text style={styles.streakText}>🔥 {performance.scored_metrics.overall.curr_win_streak}</Text>
+                                    </View>
+                                )}
+                                {performance.scored_metrics.overall.curr_loss_streak >= 3 && (
+                                    <View style={[styles.streakBadge, styles.coldStreak]}>
+                                        <Text style={styles.streakText}>🧊 {performance.scored_metrics.overall.curr_loss_streak}</Text>
+                                    </View>
+                                )}
+                                {performance.scored_metrics.overall.curr_bozo_streak >= 2 && (
+                                    <View style={[styles.streakBadge, styles.bozoStreak]}>
+                                        <Text style={styles.streakText}>🤡 {performance.scored_metrics.overall.curr_bozo_streak}</Text>
+                                    </View>
+                                )}
+                            </View>
                             <Text style={styles.score}>{performance.corrected_score.toFixed(decimals)}%</Text>
                             <Pressable onPress={toggle} style={styles.metricsButton}>
                                 <Ionicons
@@ -273,10 +302,17 @@ const styles = StyleSheet.create({
         ...typography.heading,
         color: colors.textPrimary,
     },
+    // Takes the slack, so the streaks and the score sit together at the right edge and the
+    // ledger stays with the name.
+    streakGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+        marginLeft: 'auto',
+    },
     score: {
         ...typography.heading,
         color: colors.accent,
-        marginLeft: 'auto',
     },
     streakBadge: {
         paddingHorizontal: 2,
@@ -284,6 +320,17 @@ const styles = StyleSheet.create({
     coldStreak: {},
     bozoStreak: {
         backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    },
+    ledgerBadge: {
+        backgroundColor: 'rgba(239, 68, 68, 0.18)',
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+    },
+    ledgerText: {
+        ...typography.small,
+        color: colors.danger,
+        fontWeight: '700',
     },
     streakText: {
         ...typography.caption,

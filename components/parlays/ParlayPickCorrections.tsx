@@ -59,6 +59,8 @@ export default function ParlayPickCorrections(props: Props) {
                 />
             ) : (
                 <ImageCorrectionFlow
+                parlay={props.parlay}
+                parlayPayoutPp={props.parlay.payout_pp}
                     analysis={analysis}
                     onEditFully={handleEditFully}
                     onDone={props.onDone}

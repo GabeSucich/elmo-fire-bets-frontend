@@ -5,7 +5,15 @@ import { useToastContext } from "./toastContext"
 
 export interface PerformancesContextType {
     performances: Record<string, GamblerPerformance> | null
+    /** What each gambler's bozos have cost, by gambler id. Absent where nobody has. */
+    lossLedger: Record<string, number>
     loading: boolean
+    /**
+     * Whether the first fetch has come back. Separate from `loading` so a screen can block
+     * on arriving here without unmounting on every later refresh — which, for a tab
+     * navigator, throws the viewer back to the first tab mid-pull.
+     */
+    initialized: boolean
     reload: () => void
     /** Keyed on the performance's own gambler_id, not the record key. */
     performanceFor: (gamblerId: number) => GamblerPerformance | undefined
@@ -36,11 +44,16 @@ export function PerformancesProvider({ seasonId, children }: Props) {
     const { showToast } = useToastContext()
     const [loading, setLoading] = useState(true)
     const [performances, setPerformances] = useState<Record<string, GamblerPerformance> | null>(null)
+    const [lossLedger, setLossLedger] = useState<Record<string, number>>({})
+    const [initialized, setInitialized] = useState(false)
 
     function reload() {
         setLoading(true)
         GamblingSeasonService.getSeasonGamblerPerformances(seasonId)
-            .then(res => setPerformances(res.performances))
+            .then(res => {
+                setPerformances(res.performances)
+                setLossLedger(res.loss_ledger)
+            })
             .catch(e => setApiErrorMsg(
                 e,
                 message => showToast(message, {
@@ -49,7 +62,13 @@ export function PerformancesProvider({ seasonId, children }: Props) {
                 }),
                 "There was an error loading performance data"
             ))
-            .finally(() => setLoading(false))
+            .finally(() => {
+                setLoading(false)
+                // On settle rather than on success: a first fetch that failed has still
+                // had its turn, and blocking forever behind a spinner is worse than the
+                // empty state with the retry toast over it.
+                setInitialized(true)
+            })
     }
 
     // `reload` is redefined every render, but everything it closes over that matters is
@@ -67,7 +86,9 @@ export function PerformancesProvider({ seasonId, children }: Props) {
     return (
         <PerformancesContext.Provider value={{
             performances,
+            lossLedger,
             loading,
+            initialized,
             reload,
             performanceFor: (gamblerId: number) => byGambler.get(gamblerId),
         }}>

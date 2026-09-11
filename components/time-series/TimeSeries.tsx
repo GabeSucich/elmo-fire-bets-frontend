@@ -1,4 +1,5 @@
 import { GamblingSeasonService } from "@/api";
+import RefreshableScrollView from "@/components/reusable/RefreshableScrollView";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
 import React, { useEffect, useState } from "react";
@@ -38,7 +39,9 @@ export default function TimeSeries(props: Props) {
         })
     }
 
-    useEffect(() => {
+    // Lifted out of the effect so the pull gesture can call the same fetch the mount does,
+    // rather than a second copy of it that could drift.
+    function reload() {
         setLoading(true)
         GamblingSeasonService.getSeasonTimeSeries(props.seasonId).then(res => {
             const gamblerLines = Object.entries(res.time_series).map(([_id, data], index) => {
@@ -54,10 +57,12 @@ export default function TimeSeries(props: Props) {
             setLines(gamblerLines)
         })
         .finally(() => setLoading(false))
-        // Mount-only: the chart is rendered inside a season, so neither the id nor the
-        // gambler names it reads can change while it is on screen.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }
+
+    // Mount-only: the chart is rendered inside a season, so neither the id nor the gambler
+    // names it reads can change while it is on screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { reload() }, [])
 
     if (loading) {
         return (
@@ -88,7 +93,11 @@ export default function TimeSeries(props: Props) {
     }))
 
     return (
-        <View style={styles.container}>
+        <RefreshableScrollView
+            style={styles.container}
+            onRefresh={reload}
+            refreshing={loading}
+        >
             <View style={styles.chartCard}>
                 <LineChart
                     key={visibleLines.map(l => l.gamblerId).join(",")}
@@ -130,7 +139,7 @@ export default function TimeSeries(props: Props) {
                     )
                 })}
             </View>
-        </View>
+        </RefreshableScrollView>
     )
 }
 

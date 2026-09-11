@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import Notice from "../reusable/Notice";
 import ActionButton from "../reusable/ActionButton";
+import PayoutEditorModal from "./modals/PayoutEditorModal";
 import { ParlayCard } from "./ParlayCard";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import { PickResultColors } from "@/util/pickResults";
@@ -26,14 +27,24 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
     const {
         refreshParlays,
         navToTab,
-        setFocusedParlayId
+        setFocusedParlayId,
+        updateParlay
     } = useParlaysContext()
 
     const [finalizedParlay, setFinalizedParlay] = useState<ParlayResponseData | null>(null)
+    const [payoutVisible, setPayoutVisible] = useState(false)
     const [possibleResults, setPossibleResults] = useState<ParlayResult[]>([])
     const [selectedResult, setSelectedResult] = useState<ParlayResult | null>(null)
 
     const allPicksHaveResults = parlay.picks.every(pick => !!pick.result)
+
+    const current = finalizedParlay || parlay
+    // Only where there is money to report. A loss is fully described by the wager, so
+    // pressing for a payout on one would be asking for a number that does not exist.
+    const needsPayout = current.payout_pp === null
+        && selectedResult !== null
+        && selectedResult !== ParlayResult.LOSS
+        && selectedResult !== ParlayResult.BOZO
 
     const {
         execute: finalizeParlay
@@ -112,15 +123,56 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
                             handleSelect={r => setSelectedResult(r)}
                             containerProps={{alignItems: "center"}}
                         />
+                        {/* A lay closed without a payout is one nobody can report on
+                            afterwards, and the moment of closing is the only time anybody
+                            still has the slip to hand. Asked for here rather than blocked
+                            on: a lost lay needs no payout, and demanding one would make
+                            closing the common case harder than the rare one. */}
+                        {selectedResult && needsPayout && (
+                            <View style={{marginTop: spacing.sm}}>
+                                <Notice message="This lay has no payout recorded. Add it now while the slip is to hand." />
+                            </View>
+                        )}
                         {
                             selectedResult &&
-                                <View style={{marginTop: spacing.sm, marginLeft: "auto"}}>
-                                    <ActionButton text="Save Result" onPress={() => closeParlay(selectedResult)} />
+                                <View style={{
+                                    marginTop: spacing.sm, marginLeft: "auto",
+                                    flexDirection: "row", gap: spacing.sm,
+                                }}>
+                                    {needsPayout && (
+                                        <ActionButton
+                                            text="+$"
+                                            onPress={() => setPayoutVisible(true)}
+                                            color={colors.accent}
+                                        />
+                                    )}
+                                    <ActionButton
+                                        text="Save Result"
+                                        onPress={() => closeParlay(selectedResult)}
+                                        color={needsPayout ? colors.buttonSecondary : colors.accent}
+                                    />
                                 </View>
                         }
                     </View>
                 )
             }
+            <PayoutEditorModal
+                visible={payoutVisible}
+                parlay={current}
+                prompt="Needed before this lay can be reported on."
+                onClose={() => setPayoutVisible(false)}
+                onSave={payoutPerPerson => {
+                    setPayoutVisible(false)
+                    updateParlay({
+                        parlay_id: parlay.id,
+                        competition_date: null,
+                        owner_id: null,
+                        slate_type: null,
+                        wager_pp: null,
+                        payout_pp: payoutPerPerson,
+                    })
+                }}
+            />
             {
                 finalizedParlay && possibleResults.length === 0 && (
                     <View style={{alignContent: "center", paddingVertical: spacing.sm}}>

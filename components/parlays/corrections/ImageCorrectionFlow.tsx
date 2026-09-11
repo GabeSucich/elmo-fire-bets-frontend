@@ -1,11 +1,15 @@
 import React, { useState } from "react"
-import { PickResponseData, PicksService } from "@/api"
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
+import PayoutEditorModal from "../modals/PayoutEditorModal"
+import { ParlayResponseData, PickResponseData, PicksService } from "@/api"
+import { useParlaysContext } from "@/contexts/parlaysContext"
+import { money, perPerson } from "@/util/payout"
 import { playerTeamResultToRequestData } from "@/util/executePlayerSearch"
 import { CorrectionImageAnalysis, ReviewRowState } from "@/composables/useCorrectionImageAnalysis"
 import { useLoadingState } from "@/composables/useLoadingState"
 import { useToastContext } from "@/contexts/toastContext"
 import { colors, spacing, typography } from "@/theme/colors"
-import { ScrollView, Text, View } from "react-native"
+import { Pressable, ScrollView, Text, View } from "react-native"
 import ActionButton from "../../reusable/ActionButton"
 import Notice from "../../reusable/Notice"
 import OverlayLoader from "../../reusable/OverlayLoader"
@@ -24,18 +28,30 @@ type Props = {
     onSubmitted?: () => void
     /** Omitted when the flow is reached while locking, where the slip is the only route. */
     onEnterManually?: () => void
+    /** The lay being corrected, so the payout editor can divide by its legs. */
+    parlay: ParlayResponseData
+    /** What the lay already has recorded, so a slip never overwrites a typed-in figure. */
+    parlayPayoutPp: number | null
 }
 
 export default function ImageCorrectionFlow(props: Props) {
     const { showToast } = useToastContext()
+    const { updateParlay } = useParlaysContext()
     const { loading, setLoading } = useLoadingState()
 
     const {
-        parlayId, phase, legs, statedLegCount, rows, analyze, updateRow, dropRows, reset,
+        parlayId, phase, legs, statedLegCount, totalPayout, rows, analyze, updateRow, dropRows, reset,
     } = props.analysis
 
     /** The picker takes a moment to appear; without this the tap looks like it did nothing. */
     const [openingLibrary, setOpeningLibrary] = useState(false)
+    const [payoutEditorVisible, setPayoutEditorVisible] = useState(false)
+    /**
+     * A figure typed here, which wins over both the slip and what the lay already holds.
+     * Held rather than written on the spot so the payout lands in the same submission as
+     * the lines it came off, and an abandoned review leaves nothing behind.
+     */
+    const [editedPayoutPp, setEditedPayoutPp] = useState<number | null>(null)
 
     async function startAnalyze() {
         setOpeningLibrary(true)
@@ -114,6 +130,26 @@ export default function ImageCorrectionFlow(props: Props) {
             return
         }
 
+        // The slip printed a payout, so record it in the same submission that records the
+        // lines off it. Divided by the legs applied rather than by the season's gamblers:
+        // the slip is the bet that was actually placed, and its return belongs to whoever
+        // is on it. Only when there is not one already — a figure somebody typed by hand
+        // beats one read off a screenshot.
+        const payoutToSave = editedPayoutPp
+            ?? (totalPayout !== null && props.parlayPayoutPp === null && applied.length > 0
+                ? perPerson(totalPayout, applied.length)
+                : null)
+        if (payoutToSave !== null) {
+            updateParlay({
+                parlay_id: parlayId,
+                competition_date: null,
+                owner_id: null,
+                slate_type: null,
+                wager_pp: null,
+                payout_pp: payoutToSave,
+            })
+        }
+
         // Everything landed, so there is nothing left to do here. Closing refreshes the
         // parlay underneath, which is where the adjustments actually need to show up.
         reset()
@@ -157,6 +193,14 @@ export default function ImageCorrectionFlow(props: Props) {
             )
         }
 
+        // What the lay will end up with: a figure typed here first, then whatever the lay
+        // already holds, then the slip. A hand-entered number beats a scraped one, and an
+        // existing one beats a fresh scrape of the same slip.
+        const payoutPerPerson =
+            editedPayoutPp
+            ?? props.parlayPayoutPp
+            ?? (totalPayout !== null && rows.length > 0 ? perPerson(totalPayout, rows.length) : null)
+
         const matchedCount = rows.filter(row => row.leg).length
         const legsMissing = statedLegCount != null && statedLegCount > legs.length
 
@@ -174,6 +218,52 @@ export default function ImageCorrectionFlow(props: Props) {
         return (
             <View style={{ gap: spacing.sm }}>
                 {loading && <OverlayLoader loaderProps={{ text: "Saving adjustments...", size: 20 }} />}
+
+                {/* Shown because it is about to be saved, and editable because a figure
+                    read off a screenshot is the kind of thing only noticed once it is
+                    already wrong on the card. */}
+                {payoutPerPerson !== null && (
+                    <View style={{
+                        flexDirection: "row", alignItems: "center", gap: spacing.sm,
+                        backgroundColor: colors.card, borderRadius: 12,
+                        borderWidth: 1, borderColor: colors.cardBorder,
+                        paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+                    }}>
+                        <View style={{ flex: 1, gap: 2 }}>
+                            <Text style={{ ...typography.small, color: colors.textMuted }}>
+                                Payout
+                            </Text>
+                            <Text style={{ ...typography.heading, color: colors.success, fontWeight: "700" }}>
+                                {money(payoutPerPerson * rows.length)}
+                                <Text style={{ ...typography.caption, color: colors.textSecondary, fontWeight: "400" }}>
+                                    {"  total"}
+                                </Text>
+                            </Text>
+                            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                                {money(payoutPerPerson)} each
+                            </Text>
+                        </View>
+                        <Pressable
+                            onPress={() => setPayoutEditorVisible(true)}
+                            hitSlop={10}
+                            accessibilityLabel="Edit payout"
+                        >
+                            <MaterialCommunityIcons
+                                name="square-edit-outline" size={22} color={colors.accent}
+                            />
+                        </Pressable>
+                    </View>
+                )}
+
+                <PayoutEditorModal
+                    visible={payoutEditorVisible}
+                    parlay={{ ...props.parlay, payout_pp: payoutPerPerson }}
+                    onClose={() => setPayoutEditorVisible(false)}
+                    onSave={value => {
+                        setPayoutEditorVisible(false)
+                        setEditedPayoutPp(value)
+                    }}
+                />
 
                 <Text style={{ ...typography.caption, color: colors.textSecondary }}>
                     Matched {matchedCount} of {rows.length} picks to a line on the slip.

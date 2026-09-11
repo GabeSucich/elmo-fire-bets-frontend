@@ -1,13 +1,15 @@
 // components/ParlayCard.tsx
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { ParlayResponseData, PickResponseData, ParlayState } from "@/api";
+import { ParlayResponseData, PickResponseData, ParlayResult, ParlayState } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import GamblerParlaySlot from "../picks/GamblerParlaySlot";
 import { useParlaysContext } from "@/contexts/parlaysContext";
 import { TileSize } from "../reusable/tiles/common";
 import { ParlayResultColors } from "@/util/pickResults";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import ParlayMoney from "./ParlayMoney";
+import { money, netPerPerson } from "@/util/payout";
 import DeleteParlayModal from "./modals/DeleteParlayModal";
 import ParlayEditorModal from "./modals/ParlayEditorModal";
 import { ACTION_ICON_SIZE, colors, shadows, typography, spacing } from "@/theme/colors";
@@ -55,15 +57,27 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
   }
 
   const isBuilding = parlay.state === ParlayState.BUILDING
+  const bozoCost = netPerPerson(parlay)
 
   return (
     <View style={styles.card}>
-      <View style={[styles.headerRow, !expanded && styles.headerRowCollapsed]}>
+      <View style={[styles.headerBlock, !expanded && styles.headerBlockCollapsed]}>
+        <View style={styles.headerRow}>
         <Text style={styles.header} numberOfLines={1}>{ slateTypeDisplay(parlay.slate_type) }</Text>
         <View style={styles.headerActions}>
           {parlay.result && (
             <View style={{ backgroundColor: ParlayResultColors[parlay.result], paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 }}>
               <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600' }}>{parlay.result}</Text>
+            </View>
+          )}
+          {/* What the bozo cost on top of the stake: the return everybody else had earned
+              and nobody collected — the same figure the loss ledger charges for it. Beside
+              the verdict rather than in the money line, which keeps saying what a lost lay
+              always says. Absent until a payout is recorded, since there is no honest
+              number before that. */}
+          {parlay.result === ParlayResult.BOZO && bozoCost !== null && (
+            <View style={styles.bozoCost}>
+              <Text style={styles.bozoCostText}>− {money(bozoCost)}</Text>
             </View>
           )}
           {/* Edit, swap and delete are all outline icons at one size: they sit together in
@@ -115,7 +129,12 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
               color={colors.textSecondary}
             />
           </Pressable>
+          </View>
         </View>
+        {/* Under the title rather than beside it: the slate names are long enough that a
+            figure sharing the line truncated "Thursday Night Football". Inside the block,
+            so it sits above the rule that separates the header from the picks. */}
+        <ParlayMoney parlay={parlay} />
       </View>
 
       <Collapsible expanded={expanded}>
@@ -167,20 +186,36 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     ...shadows.card,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  // The rule and the spacing belong to the block rather than the title line, so the money
+  // underneath sits inside the header instead of below its divider.
+  headerBlock: {
+    gap: 2,
     marginBottom: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
   // Collapsed, the header is the whole card — a rule under it would divide it from nothing.
-  headerRowCollapsed: {
+  headerBlockCollapsed: {
     borderBottomWidth: 0,
     marginBottom: 0,
     paddingBottom: 0,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  bozoCost: {
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  bozoCostText: {
+    ...typography.small,
+    color: colors.danger,
+    fontWeight: '700',
   },
   headerActions: {
     flexDirection: "row",

@@ -5,6 +5,7 @@ import { View } from "react-native";
 import PickCorrectionsModal from "../modals/PickCorrectionsModal";
 import ParlayFinalizationModal from "../modals/ParlayFinalizationModal";
 import UnlockParlayModal from "../modals/UnlockParlayModal";
+import PayoutButton from "../PayoutButton";
 
 import ActionButton from "../../reusable/ActionButton";
 import { useParlaysContext } from "@/contexts/parlaysContext";
@@ -95,6 +96,7 @@ export default function OpenParlayFooter({ parlay }: Props) {
                     />
                 )}
                 {syncButton}
+                <PayoutButton parlay={parlay} />
 
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginLeft: 'auto' }}>
                     <ActionButton
@@ -102,7 +104,7 @@ export default function OpenParlayFooter({ parlay }: Props) {
                         onPress={() => setPickCorrectionVisible(true)}
                         color={slipOutstanding ? colors.accent : colors.buttonSecondary}
                     />
-                    <ActionButton text="Finalize Result" onPress={() => setFinalizationVisible(true)} disabled={picksWithoutResultsCnt > 0 || uncorrectedPickCnt > 0} />
+                    <ActionButton text="Finalize" onPress={() => setFinalizationVisible(true)} disabled={picksWithoutResultsCnt > 0 || uncorrectedPickCnt > 0} />
                 </View>
 
                 <PickCorrectionsModal
@@ -142,6 +144,7 @@ export default function OpenParlayFooter({ parlay }: Props) {
             gap: spacing.sm, marginTop: spacing.md,
         }}>
             {syncButton}
+            <PayoutButton parlay={parlay} />
             <ActionButton text={`Claim from ${ownerName}`} onPress={() => claimParlay(parlay.id, gamblerId)} />
         </View>
     )

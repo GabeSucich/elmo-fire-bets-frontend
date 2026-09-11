@@ -54,6 +54,10 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
     const [phase, setPhase] = useState<AnalysisPhase>('idle')
     const [legs, setLegs] = useState<ExtractedLeg[]>([])
     const [statedLegCount, setStatedLegCount] = useState<number | null>(null)
+    // The whole lay's return as the slip printed it. Held rather than written straight
+    // away, for the same reason the legs are: the slip is applied in one submission, and
+    // an extraction the reviewer then abandons should leave nothing behind.
+    const [totalPayout, setTotalPayout] = useState<number | null>(null)
     const [rows, setRows] = useState<ReviewRowState[]>([])
 
     const { sortedGamblers } = useGamblingSeasonContext()
@@ -107,6 +111,7 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
 
             setLegs(extracted.legs)
             setStatedLegCount(extracted.stated_leg_count)
+            setTotalPayout(extracted.total_payout)
             setRows(buildRows(extracted.legs, matched.suggestions))
             setPhase('review')
         } catch (error) {
@@ -143,6 +148,7 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
     function reset() {
         setLegs([])
         setStatedLegCount(null)
+        setTotalPayout(null)
         setRows([])
         setPhase('idle')
     }
@@ -152,6 +158,7 @@ export default function useCorrectionImageAnalysis(parlay: ParlayResponseData) {
         phase,
         legs,
         statedLegCount,
+        totalPayout,
         rows,
         analyze,
         startManual,

@@ -1,7 +1,9 @@
 import { GamblerPerformance, SetMetrics } from "@/api";
+import RefreshableScrollView from "@/components/reusable/RefreshableScrollView";
+import { usePerformancesContext } from "@/contexts/performancesContext";
 import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst";
 import React, { useMemo, useState } from "react";
-import { Text, View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { Text, View, StyleSheet, Pressable } from "react-native";
 import { colors, typography, spacing, shadows } from "@/theme/colors";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import TrendsInfoModal from "./TrendsInfoModal";
@@ -149,6 +151,7 @@ function buildAll<T>(
 }
 
 export default function Trends(props: Props) {
+    const { loading, reload } = usePerformancesContext()
     const [mode, setMode] = useState<Mode>("prop")
     const [infoVisible, setInfoVisible] = useState(false)
     const meFirst = useGamblersMeFirst()
@@ -199,7 +202,12 @@ export default function Trends(props: Props) {
                 minTDLosses={MIN_TD_LOSSES}
             />
 
-            <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+            <RefreshableScrollView
+                style={styles.scrollArea}
+                contentContainerStyle={styles.scrollContent}
+                onRefresh={reload}
+                refreshing={loading}
+            >
                 {mode === "player" && (
                     <>
                         {gamblerTrends.map(trend => (
@@ -241,7 +249,7 @@ export default function Trends(props: Props) {
                         ))}
                     </>
                 )}
-            </ScrollView>
+            </RefreshableScrollView>
         </View>
     )
 }

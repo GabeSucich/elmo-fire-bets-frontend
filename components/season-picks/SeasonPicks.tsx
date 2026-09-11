@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react"
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Pressable, StyleSheet, Text, View } from "react-native"
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import {
     PropBetDirection,
@@ -10,6 +10,7 @@ import {
 } from "@/api"
 import ActivityLoader from "@/components/reusable/ActivityLoader"
 import Collapsible from "@/components/reusable/Collapsible"
+import RefreshableScrollView from "@/components/reusable/RefreshableScrollView"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import OverlayLoader from "@/components/reusable/OverlayLoader"
 import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst"
@@ -297,7 +298,12 @@ export default function SeasonPicks({ season }: Props) {
                 </View>
             </View>
 
-            <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+            <RefreshableScrollView
+                style={styles.scrollArea}
+                contentContainerStyle={styles.scrollContent}
+                onRefresh={season.reload}
+                refreshing={season.loading}
+            >
                 {byGambler.map(({ gambler, picks }) => (
                     <GamblerCard
                         key={gambler.id}
@@ -390,7 +396,7 @@ export default function SeasonPicks({ season }: Props) {
                         )}
                     </GamblerCard>
                 ))}
-            </ScrollView>
+            </RefreshableScrollView>
 
             {/* Over the whole screen rather than beside the button: a sync rewrites every
                 gambler's weeks, so the list underneath is stale until it lands. */}
