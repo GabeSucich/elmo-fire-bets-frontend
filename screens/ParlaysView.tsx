@@ -4,6 +4,8 @@ import { View, TouchableOpacity, StyleSheet } from "react-native"
 import ParlayTabButtons from "@/components/reusable/TabButtons"
 import OverlayLoader from "@/components/reusable/OverlayLoader"
 import ParlaysList from "@/components/parlays/ParlaysList"
+import SeasonMoneyHeader from "@/components/parlays/SeasonMoneyHeader"
+import { FAB_BOTTOM, FAB_SIZE } from "@/components/parlays/common"
 import { GetSeasonParlaysSortParam, ParlayState, PickResponseData, UpdateParlayRequestData } from "@/api"
 import { ParlaysProvider } from "@/contexts/parlaysContext"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
@@ -251,6 +253,10 @@ export default function ParlaysView(props: Props) {
                     </TouchableOpacity>
                 </View>
             </View>
+            {/* Above the list rather than inside it, so it stays put while the closed
+                lays scroll under it. Only on Closed: an open or building lay has not
+                settled, so it has nothing to contribute to a running total. */}
+            {activeTab === "Closed" && <SeasonMoneyHeader />}
             {VisibleParlays()}
             {activeTabLoading() && <OverlayLoader loaderProps={{ text: "Loading parlays..." }} />}
             {/* Creating a parlay is the primary action on this tab, and it was crowding the
@@ -296,10 +302,11 @@ const styles = StyleSheet.create({
     fab: {
         position: "absolute",
         right: spacing.lg,
-        bottom: spacing.xl,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        // Shared with the list's bottom padding, which has to clear this.
+        bottom: FAB_BOTTOM,
+        width: FAB_SIZE,
+        height: FAB_SIZE,
+        borderRadius: FAB_SIZE / 2,
         backgroundColor: colors.accent,
         alignItems: "center",
         justifyContent: "center",

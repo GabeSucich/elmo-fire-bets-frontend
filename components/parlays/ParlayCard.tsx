@@ -65,11 +65,6 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
         <View style={styles.headerRow}>
         <Text style={styles.header} numberOfLines={1}>{ slateTypeDisplay(parlay.slate_type) }</Text>
         <View style={styles.headerActions}>
-          {parlay.result && (
-            <View style={{ backgroundColor: ParlayResultColors[parlay.result], paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 }}>
-              <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600' }}>{parlay.result}</Text>
-            </View>
-          )}
           {/* What the bozo cost on top of the stake: the return everybody else had earned
               and nobody collected — the same figure the loss ledger charges for it. Beside
               the verdict rather than in the money line, which keeps saying what a lost lay
@@ -78,6 +73,11 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
           {parlay.result === ParlayResult.BOZO && bozoCost !== null && (
             <View style={styles.bozoCost}>
               <Text style={styles.bozoCostText}>− {money(bozoCost)}</Text>
+            </View>
+          )}
+          {parlay.result && (
+            <View style={{ backgroundColor: ParlayResultColors[parlay.result], paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8 }}>
+              <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600' }}>{parlay.result}</Text>
             </View>
           )}
           {/* Edit, swap and delete are all outline icons at one size: they sit together in

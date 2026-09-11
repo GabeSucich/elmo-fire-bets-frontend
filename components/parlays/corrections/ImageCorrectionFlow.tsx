@@ -233,14 +233,18 @@ export default function ImageCorrectionFlow(props: Props) {
                             <Text style={{ ...typography.small, color: colors.textMuted }}>
                                 Payout
                             </Text>
-                            <Text style={{ ...typography.heading, color: colors.success, fontWeight: "700" }}>
+                            {/* One line, both figures carrying the same weight: they are the
+                                same money counted two ways, and stacking them made the total
+                                look like the answer and the share like a footnote. */}
+                            <Text style={{ ...typography.heading, fontWeight: "700", color: colors.success }}>
+                                {money(payoutPerPerson)}
+                                <Text style={{ ...typography.caption, color: colors.textSecondary, fontWeight: "400" }}>
+                                    {" each · "}
+                                </Text>
                                 {money(payoutPerPerson * rows.length)}
                                 <Text style={{ ...typography.caption, color: colors.textSecondary, fontWeight: "400" }}>
-                                    {"  total"}
+                                    {" total"}
                                 </Text>
-                            </Text>
-                            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-                                {money(payoutPerPerson)} each
                             </Text>
                         </View>
                         <Pressable

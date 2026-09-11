@@ -7,6 +7,10 @@ export interface PerformancesContextType {
     performances: Record<string, GamblerPerformance> | null
     /** What each gambler's bozos have cost, by gambler id. Absent where nobody has. */
     lossLedger: Record<string, number>
+    /** The season's running total per person across every closed lay. */
+    seasonNetPp: number
+    /** Wins nobody has recorded a payout for, which the total above leaves out. */
+    winsMissingPayout: number
     loading: boolean
     /**
      * Whether the first fetch has come back. Separate from `loading` so a screen can block
@@ -46,6 +50,8 @@ export function PerformancesProvider({ seasonId, children }: Props) {
     const [performances, setPerformances] = useState<Record<string, GamblerPerformance> | null>(null)
     const [lossLedger, setLossLedger] = useState<Record<string, number>>({})
     const [initialized, setInitialized] = useState(false)
+    const [seasonNetPp, setSeasonNetPp] = useState(0)
+    const [winsMissingPayout, setWinsMissingPayout] = useState(0)
 
     function reload() {
         setLoading(true)
@@ -53,6 +59,8 @@ export function PerformancesProvider({ seasonId, children }: Props) {
             .then(res => {
                 setPerformances(res.performances)
                 setLossLedger(res.loss_ledger)
+                setSeasonNetPp(res.season_net_pp)
+                setWinsMissingPayout(res.wins_missing_payout)
             })
             .catch(e => setApiErrorMsg(
                 e,
@@ -87,6 +95,8 @@ export function PerformancesProvider({ seasonId, children }: Props) {
         <PerformancesContext.Provider value={{
             performances,
             lossLedger,
+            seasonNetPp,
+            winsMissingPayout,
             loading,
             initialized,
             reload,

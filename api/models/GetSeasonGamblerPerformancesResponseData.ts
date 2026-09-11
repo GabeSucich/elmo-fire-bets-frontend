@@ -6,5 +6,7 @@ import type { GamblerPerformance } from './GamblerPerformance';
 export type GetSeasonGamblerPerformancesResponseData = {
     performances: Record<string, GamblerPerformance>;
     loss_ledger: Record<string, number>;
+    season_net_pp: number;
+    wins_missing_payout: number;
 };
 

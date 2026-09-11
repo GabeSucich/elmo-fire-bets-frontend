@@ -1,4 +1,5 @@
 import { ParlayResponseData } from "@/api";
+import { LIST_BOTTOM_CLEARANCE } from "./common";
 import { ParlayCard } from "@/components/parlays/ParlayCard";
 import React, { useEffect, useRef } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
@@ -70,7 +71,7 @@ export default function ParlaysList(props: Props) {
                 }}
                 data={props.parlays}
                 keyExtractor={(parlay) => String(parlay.id)}
-                contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: spacing.xl }}
+                contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: LIST_BOTTOM_CLEARANCE }}
                 renderItem={(parlay) => {
                     const isLoading = parlayIsLoading(parlay.item.id)
                     return (
