@@ -22,5 +22,9 @@ export type PickResponseData = {
     prop_type: PropBetType;
     reactions: Array<PickReactionResponseData>;
     comment_count: number;
+    live_value: (number | null);
+    live_state: (string | null);
+    live_detail: (string | null);
+    live_synced_at: (string | null);
 };
 

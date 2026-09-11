@@ -36,3 +36,14 @@ export function formatRate(value: number, roundUp: boolean): string {
         : Math.floor(tenths + 1e-9)
     return (snapped / 10).toFixed(1)
 }
+
+/**
+ * A stat's market name, singular when there is exactly one of it: "1 Win", not "1 Wins".
+ *
+ * Trailing -s only, which is how every market that pluralises does it — Targets, TDs, FGs,
+ * Receptions — and which leaves the ones that do not, like "Longest Rush", alone by the
+ * same rule.
+ */
+export function countLabel(label: string, value: number): string {
+    return value === 1 && label.endsWith("s") ? label.slice(0, -1) : label
+}

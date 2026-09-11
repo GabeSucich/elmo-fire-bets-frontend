@@ -1,7 +1,7 @@
 import { ParlayResponseData } from "@/api";
 import { ParlayCard } from "@/components/parlays/ParlayCard";
-import React, { useEffect, useRef, useState } from "react";
-import { Button, FlatList, Pressable, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { FlatList, Pressable, Text, View } from "react-native";
 import OverlayLoader from "../reusable/OverlayLoader";
 import ParlayFooter from "./ParlayFooter";
 import { ParlayLoadingStates } from "@/composables/useListParlays";
@@ -50,7 +50,13 @@ export default function ParlaysList(props: Props) {
             tryScrollToIndex(focusedParlayIndex)
             setFocusedParlayId(null)
         }
-    }, [props.parlays])
+        // Both guards belong here, not just the list. Locking a parlay refreshes and
+        // then focuses, so today the focus is always set before the rows change — but an
+        // effect that bails on `loadingAll` and is only woken by `props.parlays` has no
+        // second chance if the order ever comes out the other way, and the scroll is
+        // silently dropped. Re-running is cheap: it returns immediately without a focus,
+        // and clears the focus once it has scrolled.
+    }, [props.parlays, props.loadingAll, focusedParlayId, setFocusedParlayId])
 
     return (
         <View style={{ flex: 1, backgroundColor: colors.background }}>

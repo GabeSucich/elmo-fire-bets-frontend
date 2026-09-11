@@ -14,7 +14,7 @@ export default function PickTargetTile({ pick, size = "sm" }: Props) {
     const display = PickDisplayUtil.playerTeamDisplay(pick)
 
     return (
-        <Tile<String>
+        <Tile<string>
             item={display}
             display={display}
             tileStyles={{ primaryColor: colors.buttonSecondary }}

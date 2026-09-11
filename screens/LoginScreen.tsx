@@ -35,10 +35,13 @@ export default function LoginScreen() {
     }
   }
 
+  // Mount-only on purpose. Depending on the fields would re-read storage every time they
+  // are cleared, which is exactly when somebody is trying to sign in as someone else.
   useEffect(() => {
     if (!username && !password) {
       loginFromStorage()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const isDisabled = () => loginLoading || !(username && password)

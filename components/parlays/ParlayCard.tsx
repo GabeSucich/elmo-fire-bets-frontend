@@ -1,7 +1,7 @@
 // components/ParlayCard.tsx
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { ParlayResponseData, PickResponseData, ParlayResult, ParlayState } from "@/api";
+import { ParlayResponseData, PickResponseData, ParlayState } from "@/api";
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import GamblerParlaySlot from "../picks/GamblerParlaySlot";
 import { useParlaysContext } from "@/contexts/parlaysContext";
@@ -35,13 +35,9 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   // Closed parlays open collapsed to just their header; everything else starts open.
   const [expanded, setExpanded] = useState(parlay.state !== ParlayState.CLOSED)
-  const {
-    gamblers,
-    sortedGamblers,
-  } = useGamblingSeasonContext()
+  const { sortedGamblers } = useGamblingSeasonContext()
 
   const {
-    refreshParlays,
     isStagedForSwap,
     handleSwapSelect,
     deleteParlay
@@ -51,17 +47,6 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
   function findPick(gamblerId: number): PickResponseData | null {
     return parlay.picks.find(pick => pick.gambler_id === gamblerId) ?? null
   }
-
-  const getResultColor = (result: ParlayResult) => {
-    switch (result) {
-
-    }
-    if (!result) return colors.textMuted;
-    if (result === ParlayResult.WIN) return colors.success;
-    if (result === ParlayResult.LOSS) return colors.danger;
-
-    return colors.warning;
-  };
 
   function formattedDate() {
     // See util/slateDate: a bare date string read through `new Date` lands on the previous

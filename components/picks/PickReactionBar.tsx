@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native"
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons"
 import { PickReactionResponseData } from "@/api"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
-import { colors, spacing, typography } from "@/theme/colors"
+import { colors, spacing } from "@/theme/colors"
 import { myEmoji } from "@/composables/usePickSocial"
 import AddReactionButton from "./AddReactionButton"
 

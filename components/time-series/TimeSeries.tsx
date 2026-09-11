@@ -54,6 +54,9 @@ export default function TimeSeries(props: Props) {
             setLines(gamblerLines)
         })
         .finally(() => setLoading(false))
+        // Mount-only: the chart is rendered inside a season, so neither the id nor the
+        // gambler names it reads can change while it is on screen.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     if (loading) {

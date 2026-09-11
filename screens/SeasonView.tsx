@@ -1,12 +1,10 @@
 import { GamblingSeasonService, GetGamblingSeasonResponseData } from "@/api";
-import { BottomTabNavigationProp, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Text } from "@react-navigation/elements";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useEffect, useState } from "react";
 import { MainStackParamList } from "@/Main";
 import ParlaysView from "./ParlaysView";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { GamblingSeasonProvider } from "@/contexts/gamblingSeasonContext";
 import { PerformancesProvider } from "@/contexts/performancesContext";
 import AnalyticsView from "./AnalyticsView";
@@ -16,7 +14,6 @@ import { useLoadingState } from "@/composables/useLoadingState";
 import { colors } from "@/theme/colors";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 
-type NavigationProp = NativeStackNavigationProp<MainStackParamList, "Season">
 type SeasonViewRouteProps = RouteProp<MainStackParamList, "Season">
 
 type SeasonTabsParamList = {
@@ -45,8 +42,11 @@ export default function SeasonView() {
         { retryable: true }
     )
 
+    // Mount-only: the screen is pushed per season, so the id it closes over cannot change
+    // underneath it, and `execute` is a fresh closure every render.
     useEffect(() => {
         getGamblingSeason()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     if (loading) {

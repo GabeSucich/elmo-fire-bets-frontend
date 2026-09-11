@@ -30,7 +30,9 @@ export default function OpenParlayFooter({ parlay }: Props) {
         setFocusedParlayId,
         unlockParlay: contextUnlockParlay,
         claimParlay,
-        refreshParlays
+        refreshParlays,
+        syncProgress,
+        syncingParlayId
     } = useParlaysContext()
 
     const isMyOwnedParlay = parlay.owner_id === gamblerId
@@ -45,6 +47,29 @@ export default function OpenParlayFooter({ parlay }: Props) {
     // the same thing twice, and the tabs below already flag who is outstanding.
     const slipOutstanding = uncorrectedPickCnt > 0
     const slipText = slipOutstanding ? "Add Slip" : "Update Slip"
+
+    // A leg whose game is under way or already over. Merely having been synced is not
+    // enough: a lay checked the morning of a slate is every bit as unlockable as one
+    // nobody has touched.
+    const anyLineLive = parlay.picks.some(
+        p => p.live_state === "in" || p.live_state === "post"
+    )
+
+    // Unlocking drops the lay back to Building, which undoes every correction and deletes
+    // every result. That is a reasonable thing to do to a lay nobody has acted on yet, and
+    // an alarming one to offer once the games have started or the slip is in — by then the
+    // bet is real and the button is a way to lose work rather than a way to fix a mistake.
+    const canUnlock = !anyLineLive && slipOutstanding
+
+    const syncButton = (
+        <ActionButton
+            icon="sync"
+            accessibilityLabel="Sync live progress"
+            onPress={() => syncProgress(parlay.id)}
+            loading={syncingParlayId === parlay.id}
+            color={colors.accent}
+        />
+    )
 
     function unlockParlay() {
         contextUnlockParlay(parlay.id, () => {
@@ -61,12 +86,15 @@ export default function OpenParlayFooter({ parlay }: Props) {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, flexWrap: 'wrap', gap: spacing.sm }}>
                 {/* An icon rather than a label, but still a filled button. The confirmation
                     names the action and spells out what it undoes. */}
-                <ActionButton
-                    icon="lock-open-variant-outline"
-                    accessibilityLabel="Unlock lay"
-                    onPress={() => setUnlockVisible(true)}
-                    color={colors.warning}
-                />
+                {canUnlock && (
+                    <ActionButton
+                        icon="lock-open-variant-outline"
+                        accessibilityLabel="Unlock lay"
+                        onPress={() => setUnlockVisible(true)}
+                        color={colors.warning}
+                    />
+                )}
+                {syncButton}
 
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginLeft: 'auto' }}>
                     <ActionButton
@@ -104,9 +132,16 @@ export default function OpenParlayFooter({ parlay }: Props) {
         )
     }
 
+    // Syncing is not an owner's privilege: it reads a public feed and writes only what
+    // ESPN says, and the people watching a lay they do not own are exactly the ones who
+    // want to see how it is going.
     const ownerName = gamblers[parlay.owner_id].firstName
     return (
-        <View style={{ alignItems: 'flex-start', marginTop: spacing.md }}>
+        <View style={{
+            flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap',
+            gap: spacing.sm, marginTop: spacing.md,
+        }}>
+            {syncButton}
             <ActionButton text={`Claim from ${ownerName}`} onPress={() => claimParlay(parlay.id, gamblerId)} />
         </View>
     )

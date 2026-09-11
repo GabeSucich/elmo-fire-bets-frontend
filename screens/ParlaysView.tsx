@@ -108,7 +108,7 @@ export default function ParlaysView(props: Props) {
     }
 
     function VisibleParlays() {
-        if (activeTab == "Building") {
+        if (activeTab === "Building") {
             return <ParlaysList
                 key={`parlays-${activeTab}`}
                 parlays={buildingParlays}

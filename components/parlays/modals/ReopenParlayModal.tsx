@@ -66,7 +66,7 @@ export default function ReopenParlayModal({ visible, parlayId, onCancel }: Props
                         marginBottom: spacing.xl,
                         textAlign: 'center',
                     }}>
-                        Do you want to reopen the parlay? This will require you to re-enter the parlay result in the "Open" tab.
+                        Do you want to reopen the parlay? This will require you to re-enter the parlay result in the “Open” tab.
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md }}>
                         <ActionButton text="Cancel" onPress={onCancel} color={colors.buttonSecondary} />

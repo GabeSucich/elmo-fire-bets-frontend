@@ -49,7 +49,7 @@ export default function UnlockParlayModal({ visible, onCancel, onSubmit }: Props
                         marginBottom: spacing.xl,
                         textAlign: 'center',
                     }}>
-                        Setting this parlay back to the "Building" state will undo all pick corrections that may have been applied and delete all pick results. Any vetoes that were not approved will have to be recreated.
+                        Setting this parlay back to the “Building” state will undo all pick corrections that may have been applied and delete all pick results. Any vetoes that were not approved will have to be recreated.
                     </Text>
                     <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.md }}>
                         <ActionButton text="Cancel" onPress={onCancel} color={colors.buttonSecondary} />

@@ -1,4 +1,4 @@
-import { GamblingSeasonService, GetSeasonParlaysResponseData, ParlayState, ParlayResponseData, ParlaysService, GetSeasonParlaysSortParam, PickResponseData, UpdateParlayRequestData } from "@/api"
+import { GamblingSeasonService, ParlayState, ParlayResponseData, ParlaysService, GetSeasonParlaysSortParam, PickResponseData, UpdateParlayRequestData } from "@/api"
 import { setApiErrorMsg } from "@/util/error"
 import { useEffect, useRef, useState } from "react"
 import { useToastContext } from "@/contexts/toastContext"
@@ -63,8 +63,11 @@ export function useListParlays(seasonId: number, state: ParlayState, opts?: {
         loadParlays(offset, true)
     }
 
+    // `loadParlays` is rebuilt every render, so listing it would re-fetch on every render.
+    // The trigger is the only thing that should start a load.
     useEffect(() => {
         loadParlays(0, false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [refreshTrigger])
 
     function updateParlayLoadingState(parlayId: number, loading: boolean) {

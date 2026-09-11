@@ -16,7 +16,7 @@ import { useGamblersMeFirst } from "@/composables/useGamblersMeFirst"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { SeasonPicksData } from "@/composables/useSeasonPicks"
 import { calculatePace, calculateRequirement, Pace, paceColor, PickShape } from "@/util/pace"
-import { formatLine, formatRate, formatStat } from "@/util/statFormat"
+import { countLabel, formatLine, formatRate, formatStat } from "@/util/statFormat"
 import { colors, shadows, spacing, typography } from "@/theme/colors"
 import SeasonPickEditorModal from "./SeasonPickEditorModal"
 import WeekProgressModal from "./WeekProgressModal"
@@ -36,18 +36,6 @@ const STATUS_COLOR: Record<SeasonPickStatus, string> = {
 /** "Wins" for a team total, otherwise the prop's own market name. */
 function statLabel(pick: SeasonPickResponseData): string {
     return pick.kind === SeasonPickKind.TEAM_WINS ? "Wins" : (pick.prop_type ?? "")
-}
-
-/**
- * "1 Win", not "1 Wins".
- *
- * Trailing -s only, which is how every market that pluralises does it — Targets, TDs,
- * FGs, Receptions — and which leaves the ones that do not, like "Longest Rush", alone
- * by the same rule.
- */
-function countLabel(pick: SeasonPickResponseData, value: number): string {
-    const label = statLabel(pick)
-    return value === 1 && label.endsWith("s") ? label.slice(0, -1) : label
 }
 
 /** The pick as the pace maths wants it, so both figures are handed the same inputs. */
@@ -103,7 +91,7 @@ function PickStats({ pick }: { pick: SeasonPickResponseData }) {
     return (
         <View style={styles.pickTotalRow}>
             <Text style={[styles.pickTotal, { color }]}>{formatStat(pick.progress.total)}</Text>
-            <Text style={styles.pickTotalUnit}>{countLabel(pick, pick.progress.total)}</Text>
+            <Text style={styles.pickTotalUnit}>{countLabel(statLabel(pick), pick.progress.total)}</Text>
         </View>
     )
 }
@@ -283,9 +271,11 @@ export default function SeasonPicks({ season }: Props) {
                 </Text>
                 <View style={styles.headerRight}>
                     {!season.editable && <Text style={styles.headerNote}>Season closed</Text>}
-                    {/* Admin only, and only while the season can still change: it rewrites
-                        results across everyone's picks, including weeks entered by hand. */}
-                    {season.viewerIsAdmin && season.editable && (
+                    {/* Anyone in the season, while it can still change. It rewrites results
+                        across everyone's picks including weeks entered by hand, but ESPN
+                        decides all of them, so there is nothing one gambler can do here to
+                        another's pick that the next press would not do anyway. */}
+                    {season.editable && (
                         <Pressable
                             onPress={season.sync}
                             disabled={season.syncing}

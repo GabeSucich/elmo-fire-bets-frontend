@@ -1,4 +1,4 @@
-import { GamblingSeasonState, GetGamblingSeasonResponseData, ListGamblingSeasonEl } from "@/api"
+import { GamblingSeasonState, GetGamblingSeasonResponseData } from "@/api"
 import { createContext, ReactNode, useContext } from "react"
 
 export interface Gambler {

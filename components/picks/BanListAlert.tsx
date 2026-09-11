@@ -74,13 +74,13 @@ export default function BanListAlert({ gamblerName, placement, isOwnPick }: Prop
                     }}>
                         {/* The header carries the warning now, so there is no separate title. */}
                         <Text style={{ ...typography.title, color: colors.textPrimary }}>
-                            {entry.name} is on {gamblerName}'s{' '}
+                            {entry.name} is on {gamblerName}’s{' '}
                             <Text style={{ color: colors.danger }}>ban list</Text>
                         </Text>
 
                         <Text style={{ ...typography.body, color: colors.textSecondary }}>
                             A {entry.winRate.toFixed(0)}% hit rate on {entry.name} props is{' '}
-                            {gamblerName}'s {ordinal(rank)} worst overall.
+                            {gamblerName}’s {ordinal(rank)} worst overall.
                         </Text>
 
                         {!isOwnPick && (

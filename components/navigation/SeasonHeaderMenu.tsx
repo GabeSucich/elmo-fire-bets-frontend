@@ -9,6 +9,10 @@ import { colors, shadows, spacing, typography } from "@/theme/colors"
 type Props = {
     onAllSeasons: () => void
     onSuggestions: () => void
+    onAdmin: () => void
+    /** Whether this user runs this season. The menu is rendered by the navigator, outside
+     *  the season's providers, so it has to be told rather than able to look it up. */
+    isAdmin: boolean
 }
 
 type MenuItem = {
@@ -34,7 +38,7 @@ const TOUCH_SIZE = 34
  * button sat there reading like a second title. A menu also gives account-level actions
  * somewhere to live, which is where logging out belongs.
  */
-export default function SeasonHeaderMenu({ onAllSeasons, onSuggestions }: Props) {
+export default function SeasonHeaderMenu({ onAllSeasons, onSuggestions, onAdmin, isAdmin }: Props) {
     const [open, setOpen] = useState(false)
     const insets = useSafeAreaInsets()
     const { logout } = useAuthContext()
@@ -42,6 +46,11 @@ export default function SeasonHeaderMenu({ onAllSeasons, onSuggestions }: Props)
     const items: MenuItem[] = [
         { label: "Suggestions", icon: "lightbulb-outline", onPress: onSuggestions },
         { label: "All seasons", icon: "format-list-bulleted", onPress: onAllSeasons },
+        // Last before logging out: league upkeep rather than anything to do with playing,
+        // and nobody who is not running a season should see it at all.
+        ...(isAdmin
+            ? [{ label: "Admin", icon: "shield-account-outline", onPress: onAdmin }]
+            : []),
         { label: "Log out", icon: "logout", onPress: logout, destructive: true },
     ]
 

@@ -55,7 +55,7 @@ export default function MyVeto(props: Props) {
             <View style={{ padding: spacing.md }}>
                 {loading && <OverlayLoader />}
                 <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.md }}>
-                    Your veto of {vetoeeName}'s pick is currently open to voting.
+                    Your veto of {vetoeeName}’s pick is currently open to voting.
                 </Text>
                 <VetoPickDisplay pick={props.pick} veto={props.veto} vetoeeName={vetoeeName} vetoerName={vetoerName}/>
                 <VetoProgress

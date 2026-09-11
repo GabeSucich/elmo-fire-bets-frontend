@@ -74,9 +74,9 @@ export default function ActionButton({
                         />
                     ) : (
                         <Text style={{
+                            ...typography.caption,
                             color: colors.textPrimary,
                             fontWeight: '600',
-                            ...typography.caption,
                             lineHeight: CONTENT_HEIGHT,
                         }}>{text}</Text>
                     )}

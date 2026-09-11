@@ -1,11 +1,9 @@
 import { ParlayResponseData, ParlayResult, ParlaysService } from "@/api";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Notice from "../reusable/Notice";
 import ActionButton from "../reusable/ActionButton";
-import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext";
 import { ParlayCard } from "./ParlayCard";
-import { setApiErrorMsg } from "@/util/error";
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup";
 import { PickResultColors } from "@/util/pickResults";
 import OverlayLoader from "../reusable/OverlayLoader";
@@ -98,11 +96,11 @@ export default function ParlayFinalization({ parlay, onDone }: Props) {
                     <View style={{alignContent: "center"}}>
                         {possibleResults.length > 1 && (
                             <Text style={{
+                                ...typography.heading,
                                 color: colors.textPrimary,
                                 fontWeight: '600',
                                 textAlign: 'center',
                                 marginBottom: spacing.sm,
-                                ...typography.heading,
                             }}>Select the parlay result</Text>
                         )}
                         <SelectableTileGroup<ParlayResult>

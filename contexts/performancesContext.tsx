@@ -52,8 +52,11 @@ export function PerformancesProvider({ seasonId, children }: Props) {
             .finally(() => setLoading(false))
     }
 
+    // `reload` is redefined every render, but everything it closes over that matters is
+    // the season id — which is listed, so the closure is never stale when it counts.
     useEffect(() => {
         reload()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seasonId])
 
     const byGambler = useMemo(() => {

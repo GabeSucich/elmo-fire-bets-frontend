@@ -19,7 +19,7 @@ export default function PickLineTile({ pick, showVeto = true, size = "sm" }: Pro
     )
 
     return (
-        <Tile<String>
+        <Tile<string>
             item={lineDisplay}
             display={lineDisplay}
             tileStyles={{

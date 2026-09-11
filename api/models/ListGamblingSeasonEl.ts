@@ -9,5 +9,6 @@ export type ListGamblingSeasonEl = {
     name: string;
     year: number;
     state: GamblingSeasonState;
+    is_admin: boolean;
 };
 

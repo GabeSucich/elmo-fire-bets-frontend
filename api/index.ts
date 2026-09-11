@@ -104,6 +104,8 @@ export type { SubmitVetoVoteRequestData } from './models/SubmitVetoVoteRequestDa
 export type { SubmitVetoVoteResponseData } from './models/SubmitVetoVoteResponseData';
 export type { SwapParlayOrderRequestData } from './models/SwapParlayOrderRequestData';
 export type { SwapParlayOrderResponseData } from './models/SwapParlayOrderResponseData';
+export type { SyncParlayProgressResponseData } from './models/SyncParlayProgressResponseData';
+export type { SyncPlayersResponseData } from './models/SyncPlayersResponseData';
 export type { SyncSeasonPicksResponseData } from './models/SyncSeasonPicksResponseData';
 export type { TimeSeriesDatum } from './models/TimeSeriesDatum';
 export type { UnlockParlayRequestData } from './models/UnlockParlayRequestData';
@@ -124,6 +126,7 @@ export type { WeekEntry } from './models/WeekEntry';
 export type { WeekProgressRequestData } from './models/WeekProgressRequestData';
 export type { WeeksProgressRequestData } from './models/WeeksProgressRequestData';
 
+export { AdminService } from './services/AdminService';
 export { AuthService } from './services/AuthService';
 export { CorrectionsService } from './services/CorrectionsService';
 export { FeedbackService } from './services/FeedbackService';

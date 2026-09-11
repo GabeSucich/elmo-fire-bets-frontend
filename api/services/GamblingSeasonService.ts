@@ -59,7 +59,7 @@ export class GamblingSeasonService {
         limit: number = 20,
         offset?: number,
         state?: (ParlayState | null),
-        sort: GetSeasonParlaysSortParam = 'asc',
+        sort?: (GetSeasonParlaysSortParam | null),
     ): CancelablePromise<GetSeasonParlaysResponseData> {
         return __request(OpenAPI, {
             method: 'GET',

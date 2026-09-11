@@ -28,7 +28,7 @@ export default function VetoProgress({ veto }: Props) {
             marginTop: spacing.sm,
         }}>
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', color: colors.success, marginBottom: spacing.sm, ...typography.caption }}>Approvers</Text>
+                <Text style={{ ...typography.caption, fontWeight: 'bold', color: colors.success, marginBottom: spacing.sm }}>Approvers</Text>
                 {affirmativeGamblerNames.map(name => (
                     <Text key={name} style={{ ...typography.caption, color: colors.textPrimary, marginBottom: spacing.xs }}>{name}</Text>
                 ))}
@@ -38,7 +38,7 @@ export default function VetoProgress({ veto }: Props) {
             </View>
             <View style={{ width: 1, backgroundColor: colors.divider }} />
             <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', color: colors.danger, marginBottom: spacing.sm, ...typography.caption }}>Rejectors</Text>
+                <Text style={{ ...typography.caption, fontWeight: 'bold', color: colors.danger, marginBottom: spacing.sm }}>Rejectors</Text>
                 {nonAffirmativeGamblerNames.map(name => (
                     <Text key={name} style={{ ...typography.caption, color: colors.textPrimary, marginBottom: spacing.xs }}>{name}</Text>
                 ))}

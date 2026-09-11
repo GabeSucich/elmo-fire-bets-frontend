@@ -218,7 +218,7 @@ export default function ImageCorrectionFlow(props: Props) {
                 {missingPicks.length > 0 && (
                     <Text style={{ ...typography.caption, color: colors.warning, fontWeight: '600' }}>
                         {missingPicks.map(row => row.gamblerName).join(', ')}
-                        {missingPicks.length === 1 ? ' has' : ' have'} no pick. Use "Add pick" before applying.
+                        {missingPicks.length === 1 ? ' has' : ' have'} no pick. Use “Add pick” before applying.
                     </Text>
                 )}
 

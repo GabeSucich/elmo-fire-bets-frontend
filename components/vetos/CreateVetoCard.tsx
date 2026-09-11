@@ -65,9 +65,9 @@ export default function CreateVetoCard(props: Props) {
                 }}
             >
                 <Text style={{
+                    ...typography.heading,
                     color: colors.textPrimary,
                     fontWeight: 'bold',
-                    ...typography.heading,
                 }}>
                     Veto
                 </Text>

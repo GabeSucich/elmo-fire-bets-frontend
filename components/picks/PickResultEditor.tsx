@@ -1,6 +1,5 @@
-import React from "react"
+import React, { useState } from "react"
 import { BasicPickResult, PickResponseData, PickResult, PicksService, VetoApprovalStatus } from "@/api"
-import { useState } from "react"
 import { Text, TouchableOpacity, View } from "react-native"
 import PickDisplay from "./PickDisplay"
 import SelectableTileGroup from "../reusable/tiles/SelectableTileGroup"
@@ -138,7 +137,7 @@ export default function PickResultEditor(props: Props) {
                     opacity: buttonEnabled() ? 1 : 0.6,
                     ...shadows.card,
                 }}>
-                    <Text style={{ color: colors.textPrimary, fontWeight: 'bold', ...typography.body }}>Update Result</Text>
+                    <Text style={{ ...typography.body, color: colors.textPrimary, fontWeight: 'bold' }}>Update Result</Text>
                 </View>
             </TouchableOpacity>
         </View>

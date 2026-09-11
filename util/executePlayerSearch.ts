@@ -1,5 +1,5 @@
 import { PropBetTargetRequestData } from "@/api"
-import Axios from "axios"
+import axios from "axios"
 
 export type PlayerTeamResult = {
     identifier: string
@@ -38,8 +38,8 @@ const makeSearchUrl = (term: string, termType: "player" | "team") =>
 
 export function executePlayerTeamSearch(term: string) {
     return Promise.all([
-        Axios.get(makeSearchUrl(term, "player")).then(data => transformPlayerResults(data.data.items)),
-        Axios.get(makeSearchUrl(term, "team")).then(data => transformTeamResults(data.data.items))
+        axios.get(makeSearchUrl(term, "player")).then(data => transformPlayerResults(data.data.items)),
+        axios.get(makeSearchUrl(term, "team")).then(data => transformTeamResults(data.data.items))
     ]).then(([playerResults, teamResults]) => [...playerResults, ...teamResults])
 }
 

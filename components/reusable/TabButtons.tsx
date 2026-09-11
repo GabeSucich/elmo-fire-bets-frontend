@@ -1,4 +1,4 @@
-import { ReactElement, SetStateAction } from "react"
+import { ReactElement } from "react"
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native"
 import { colors, spacing } from "@/theme/colors"
 

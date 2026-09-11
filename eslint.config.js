@@ -5,7 +5,11 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*"],
+    // `api/` is written by openapi-typescript-codegen and regenerated wholesale from the
+    // backend's schema — every file says "do not edit" at the top. Linting it only ever
+    // reported on the generator's own boilerplate, which nobody can act on without the
+    // next regeneration undoing it.
+    ignores: ["dist/*", "api/*"],
   },
   {
     rules: {

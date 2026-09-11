@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable } from "react-native";
 import AppModal from "@/components/reusable/AppModal";
-import { ParlayResponseData, ParlaysService, UpdateParlayRequestData } from "@/api";
+import { ParlayResponseData, UpdateParlayRequestData } from "@/api";
 import { useParlaysContext } from "@/contexts/parlaysContext";
 import { ParlayEditArgs } from "../common";
 import ParlayEditCard from "../ParlayEditCard";

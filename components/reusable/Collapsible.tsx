@@ -25,7 +25,7 @@ export default function Collapsible({ expanded, duration = 250, children }: Prop
 
     useEffect(() => {
         progress.value = withTiming(expanded ? 1 : 0, { duration })
-    }, [expanded, duration])
+    }, [expanded, duration, progress])
 
     const animatedStyle = useAnimatedStyle(() => {
         // Before the first measurement there is nothing to animate towards, so sit at the

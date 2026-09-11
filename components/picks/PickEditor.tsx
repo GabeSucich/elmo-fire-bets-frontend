@@ -107,6 +107,10 @@ export default function PickEditor(props: Props) {
         }
 
         return true
+        // The two helpers this calls are rebuilt every render, but they read only the
+        // state already listed here, so naming them would recompute without ever changing
+        // the answer.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTarget, selectedDirection, propLine, selectedBetType, selectedSauceFactor, props.pick, props.disabled, deleteVeto])
 
     function clearExistingSearch() {
@@ -138,6 +142,10 @@ export default function PickEditor(props: Props) {
             const timeoutId = window.setTimeout(executeSearchOnTerm, 600)
             setExecuteSearchTimeoutId(timeoutId)
         }
+        // Only the term restarts the debounce. The callbacks are rebuilt every render, so
+        // depending on them would cancel and restart the 600ms wait on each keystroke's
+        // re-render and the search would never fire.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchText])
 
     function handleSearchChange(text: string) {

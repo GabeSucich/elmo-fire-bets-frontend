@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode, useState, useEffect } from "react";
+import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import {
   clearStoredSession,
   getStoredCredentials,
@@ -7,7 +7,7 @@ import {
   setUnauthorizedHandler,
   storeSession,
 } from "@/util/authSession";
-import { ApiError, AuthService } from "../api";
+import { AuthService } from "../api";
 import { setApiErrorMsg } from "@/util/error";
 import { useLoadingState } from "@/composables/useLoadingState";
 import { useToastContext } from "@/contexts/toastContext";

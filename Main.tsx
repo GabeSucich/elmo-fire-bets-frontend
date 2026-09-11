@@ -6,6 +6,7 @@ import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SeasonHeaderMenu from "@/components/navigation/SeasonHeaderMenu";
 import SuggestionsView from "@/screens/SuggestionsView";
+import AdminView from "@/screens/AdminView";
 import { colors } from "@/theme/colors";
 
 export type MainStackParamList = {
@@ -19,7 +20,10 @@ export type MainStackParamList = {
     // scoped by season id alone, so it needs none of the season's tab context.
     Suggestions: {
         seasonId: number,
-    }
+    },
+    // Nothing it does is scoped to a season, so it takes no params — but it is reached
+    // from inside one, which is the only place the menu lives.
+    Admin: undefined
 }
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -80,6 +84,8 @@ export default function Main({user}: Props) {
                                     onSuggestions={() => navigation.navigate("Suggestions", {
                                         seasonId: route.params.season.seasonId,
                                     })}
+                                    onAdmin={() => navigation.navigate("Admin")}
+                                    isAdmin={route.params.season.isAdmin}
                                 />
                             ),
                             // Who you are signed in as only matters while testing, where
@@ -96,6 +102,14 @@ export default function Main({user}: Props) {
                             title: "Suggestions",
                             // Just the chevron. The season's name is long enough that
                             // carrying it as the back label shoves the title off centre.
+                            headerBackButtonDisplayMode: "minimal",
+                        }}
+                    />
+                    <Stack.Screen
+                        name="Admin"
+                        component={AdminView}
+                        options={{
+                            title: "Admin",
                             headerBackButtonDisplayMode: "minimal",
                         }}
                     />

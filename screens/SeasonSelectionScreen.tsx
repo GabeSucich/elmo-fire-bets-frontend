@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { GamblingSeasonState } from "@/api";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { GamblerSeason, useListSeasons } from "@/composables/useListSeasons";
 import { MainStackParamList } from "@/Main";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
@@ -27,11 +27,9 @@ const LAST_SEASON_KEY = "lastSeasonId"
 let hasAutoOpenedSeason = false
 
 type NavigationProp = NativeStackNavigationProp<MainStackParamList, "SeasonSelector">
-type SeasonSelectionRouteProp = RouteProp<MainStackParamList, "SeasonSelector">
 
 export function SeasonSelectionScreen() {
   const navigation = useNavigation<NavigationProp>()
-  const route = useRoute<SeasonSelectionRouteProp>()
 
   const { gamblerSeasons, loading } = useListSeasons()
 
@@ -56,7 +54,7 @@ export function SeasonSelectionScreen() {
     }).catch(() => {})
 
     return () => { cancelled = true }
-  }, [loading, gamblerSeasons])
+  }, [loading, gamblerSeasons, navigation])
 
   if (loading) {
     return (

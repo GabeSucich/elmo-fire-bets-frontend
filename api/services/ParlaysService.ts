@@ -18,6 +18,7 @@ import type { ReopenParlayRequestData } from '../models/ReopenParlayRequestData'
 import type { ReopenParlayResponseData } from '../models/ReopenParlayResponseData';
 import type { SwapParlayOrderRequestData } from '../models/SwapParlayOrderRequestData';
 import type { SwapParlayOrderResponseData } from '../models/SwapParlayOrderResponseData';
+import type { SyncParlayProgressResponseData } from '../models/SyncParlayProgressResponseData';
 import type { UnlockParlayRequestData } from '../models/UnlockParlayRequestData';
 import type { UnlockParlayResponseData } from '../models/UnlockParlayResponseData';
 import type { UpdateParlayRequestData } from '../models/UpdateParlayRequestData';
@@ -262,6 +263,32 @@ export class ParlaysService {
             url: '/parlays/swap_order',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Sync Parlay Progress Endpoint
+     * Read this parlay's legs off the live boxscore.
+     *
+     * Open to anyone in the season, like the season pick sync: it reads a public feed and
+     * writes only `live_*` columns, so there is nothing here one gambler can do to another's
+     * pick. It never touches `result` — void, push and bozo are judgements, and a settled
+     * result entered by hand must not be overwritten by a number scraped mid-game.
+     * @param parlayId
+     * @returns SyncParlayProgressResponseData Successful Response
+     * @throws ApiError
+     */
+    public static syncParlayProgress(
+        parlayId: number,
+    ): CancelablePromise<SyncParlayProgressResponseData> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/parlays/{parlay_id}/sync_progress',
+            path: {
+                'parlay_id': parlayId,
+            },
             errors: {
                 422: `Validation Error`,
             },

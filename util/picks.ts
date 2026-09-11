@@ -52,7 +52,6 @@ export const PickDisplayUtil = {
             line,
             corrected_line,
             direction,
-            prop_type,
             veto
         } = pick
 

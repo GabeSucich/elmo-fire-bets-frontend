@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { ParlayResponseData, ParlayResult, ParlayState, PickResponseData, PickResult, VetoApprovalStatus, VetoResult } from "@/api"
+import { ParlayResponseData, ParlayState, PickResponseData, PickResult, VetoApprovalStatus, VetoResult } from "@/api"
 import { Gambler, useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
 import { Animated, Pressable, Text, TouchableOpacity, View } from "react-native"
 import { useParlaysContext } from "@/contexts/parlaysContext"
@@ -19,6 +19,7 @@ import { usePerformancesContext } from "@/contexts/performancesContext"
 import { findBanListEntry } from "@/util/trends"
 import BanListAlert from "./BanListAlert"
 import PickReactionBar from "./PickReactionBar"
+import PickProgressBar from "./PickProgressBar"
 import PickThreadModal from "./modals/PickThreadModal"
 import { usePickReactions } from "@/composables/usePickSocial"
 
@@ -42,7 +43,7 @@ function AnimatedPickDisplay({ pick, size, hidden }: { pick: PickResponseData, s
             duration: 250,
             useNativeDriver: false,
         }).start()
-    }, [hidden])
+    }, [hidden, animValue])
 
     return (
         <Animated.View style={{
@@ -78,8 +79,7 @@ export default function GamblerParlaySlot(props: Props) {
     const isOpen = props.parlay.state === ParlayState.OPEN
     const isClosed = props.parlay.state === ParlayState.CLOSED
 
-    const isMyGambler = gamblerId == props.gambler.id
-    const isMyOwnedParlay = gamblerId == props.parlay.owner_id
+    const isMyGambler = gamblerId === props.gambler.id
     const canCreatePick = props.editable && isMyGambler && props.pick === null && isBuilding
     const canEditPick = props.editable && isBuilding && isMyGambler && props.pick !== null
 
@@ -340,6 +340,9 @@ export default function GamblerParlaySlot(props: Props) {
                     }}>{displayName}</Text>
                 </View>
             </View>
+            {props.pick && !props.hidePickDisplay && (
+                <PickProgressBar pick={props.pick} />
+            )}
             {props.pick && !props.hidePickDisplay && (
                 <PickReactionBar
                     reactions={props.pick.reactions}
