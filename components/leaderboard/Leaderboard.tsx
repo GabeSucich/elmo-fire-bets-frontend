@@ -86,6 +86,22 @@ type CardProps = {
     lossLedger: number
 }
 
+/**
+ * How the last few lays have gone, as a mark and a count.
+ *
+ * The two are sized apart on purpose: the mark is what the row is scanned for, and the
+ * number beside it is the detail you read once something has caught your eye. Sizing them
+ * together either loses the glyph or lets the count compete with the score.
+ */
+function Streak({ mark, count }: { mark: string, count: number }) {
+    return (
+        <View style={styles.streakBadge}>
+            <Text style={styles.streakMark}>{mark}</Text>
+            <Text style={styles.streakText}>{count}</Text>
+        </View>
+    )
+}
+
 function LeaderboardCard({ rank, tied, decimals, name, performance, lossLedger }: CardProps) {
     // Deductions and boosts read as one sentence rather than as separate chips, so a
     // gambler with two of them does not get a wall of coloured pills.
@@ -126,19 +142,16 @@ function LeaderboardCard({ rank, tied, decimals, name, performance, lossLedger }
                                 percentage says too. */}
                             <View style={styles.streakGroup}>
                                 {performance.scored_metrics.overall.curr_win_streak >= 3 && (
-                                    <View style={styles.streakBadge}>
-                                        <Text style={styles.streakText}>🔥 {performance.scored_metrics.overall.curr_win_streak}</Text>
-                                    </View>
+                                    <Streak mark="🔥" count={performance.scored_metrics.overall.curr_win_streak} />
                                 )}
                                 {performance.scored_metrics.overall.curr_loss_streak >= 3 && (
-                                    <View style={[styles.streakBadge, styles.coldStreak]}>
-                                        <Text style={styles.streakText}>🧊 {performance.scored_metrics.overall.curr_loss_streak}</Text>
-                                    </View>
+                                    <Streak mark="🧊" count={performance.scored_metrics.overall.curr_loss_streak} />
                                 )}
+                                {/* A tent rather than a clown. One clown is a mishap; a run
+                                    of them is a circus, and the glyph carries that on its
+                                    own without needing the count to be read first. */}
                                 {performance.scored_metrics.overall.curr_bozo_streak >= 2 && (
-                                    <View style={[styles.streakBadge, styles.bozoStreak]}>
-                                        <Text style={styles.streakText}>🤡 {performance.scored_metrics.overall.curr_bozo_streak}</Text>
-                                    </View>
+                                    <Streak mark="🎪" count={performance.scored_metrics.overall.curr_bozo_streak} />
                                 )}
                             </View>
                             <Text style={styles.score}>{performance.corrected_score.toFixed(decimals)}%</Text>
@@ -314,12 +327,16 @@ const styles = StyleSheet.create({
         ...typography.heading,
         color: colors.accent,
     },
+    // No fill on any of the three: the mark carries the meaning, and a tint behind one of
+    // them made it read as a different kind of thing from the two beside it.
     streakBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
         paddingHorizontal: 2,
     },
-    coldStreak: {},
-    bozoStreak: {
-        backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    streakMark: {
+        fontSize: 15,
     },
     ledgerBadge: {
         backgroundColor: 'rgba(239, 68, 68, 0.18)',
