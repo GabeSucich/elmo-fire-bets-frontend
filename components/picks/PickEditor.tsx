@@ -43,7 +43,10 @@ function getPlayerTeamResult(pick: PickResponseData): PlayerTeamResult {
     return {
         teamName: team_name,
         playerName: player_name,
-        identifier
+        identifier,
+        // Not carried, and not needed: this rebuilds a target that already exists, which
+        // the server finds by its identifier. A null here never clears a stored id.
+        espnAthleteId: null
     }
 }
 

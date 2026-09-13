@@ -6,5 +6,6 @@ export type PropBetTargetRequestData = {
     identifier: string;
     team_name: string;
     player_name: (string | null);
+    espn_athlete_id?: (string | null);
 };
 

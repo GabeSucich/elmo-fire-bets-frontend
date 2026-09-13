@@ -41,6 +41,8 @@ function targetOf(pick: SeasonPickResponseData | null): PlayerTeamResult | null 
         identifier: pick.prop_bet_target.identifier,
         playerName: pick.prop_bet_target.player_name,
         teamName: pick.prop_bet_target.team_name,
+        // See PickEditor: the target already exists and is found by its identifier.
+        espnAthleteId: null,
     }
 }
 

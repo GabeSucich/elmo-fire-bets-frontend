@@ -6,6 +6,13 @@ export type PlayerTeamResult = {
     identifier: string
     playerName: string | null
     teamName: string
+    /**
+     * ESPN's numeric id for the player, which is what every stats endpoint wants — the
+     * uuid above is opaque to all of them. The search returns both and this used to keep
+     * only the uuid, so a target created here arrived with no way to look its player up
+     * and his progress silently never filled in.
+     */
+    espnAthleteId: string | null
 }
 
 function transformPlayerResults(result: any): PlayerTeamResult[] {
@@ -14,7 +21,8 @@ function transformPlayerResults(result: any): PlayerTeamResult[] {
             return {
                 identifier: player.uuid,
                 playerName: player.displayName,
-                teamName: player.teamRelationships[0].core.abbreviation
+                teamName: player.teamRelationships[0].core.abbreviation,
+                espnAthleteId: player.id != null ? String(player.id) : null
             }
         })
     }
@@ -27,7 +35,9 @@ function transformTeamResults(result: any): PlayerTeamResult[] {
             return {
                 identifier: player.uuid,
                 playerName: null,
-                teamName: player.abbreviation
+                // A team is found by the abbreviation already stored on it, so it needs none.
+                teamName: player.abbreviation,
+                espnAthleteId: null
             }
         })
     }
@@ -84,6 +94,7 @@ export function playerTeamResultToRequestData(ptr: PlayerTeamResult): PropBetTar
     return {
         identifier: ptr.identifier,
         team_name: ptr.teamName,
-        player_name: ptr.playerName
+        player_name: ptr.playerName,
+        espn_athlete_id: ptr.espnAthleteId
     }
 }
