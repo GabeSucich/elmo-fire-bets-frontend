@@ -53,7 +53,15 @@ export function pickProgress(pick: PickResponseData): PickProgress | null {
     }
 
     const value = pick.live_value
-    if (value === null) return null
+    if (value === null) {
+        // The game is over and he is not in its boxscore, so he never took the field.
+        // Named rather than left blank: an empty space reads as something not working,
+        // and this is the answer people go on to record as a void.
+        if (pick.live_state === "post") {
+            return { value: null, filled: 0, color: colors.textMuted, label: "Did not play" }
+        }
+        return null
+    }
 
     const line = effectiveLine(pick)
     const isOver = effectiveDirection(pick) === PropBetDirection.OVER

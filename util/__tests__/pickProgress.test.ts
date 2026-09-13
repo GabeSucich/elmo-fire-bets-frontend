@@ -50,8 +50,11 @@ test("a void shows as void even once the game is over", () => {
     assert.equal(p.filled, 0)
 })
 
-test("a player who never appeared renders nothing rather than a zero", () => {
-    assert.equal(pickProgress(pick({ live_state: "post", live_value: null })), null)
+test("a sync that answered nothing mid-game renders nothing", () => {
+    // Defensive rather than expected: since a boxscore lists only players who have
+    // recorded something, the sync writes a nought for an absent player while the game is
+    // still being played. A null here would mean the sync could not answer at all.
+    assert.equal(pickProgress(pick({ live_state: "in", live_value: null })), null)
 })
 
 test("an over that has cleared is green, mid-game and settled alike", () => {
@@ -150,4 +153,21 @@ test("the bar fills toward the line and stops there", () => {
 test("a zero line cannot divide the bar by nothing", () => {
     const p = pickProgress(pick({ line: 0, live_state: "post", live_value: 3 }))!
     assert.equal(p.filled, 0)
+})
+
+
+test("a player not in the boxscore of a finished game never took the field", () => {
+    const p = pickProgress(pick({ live_state: "post", live_value: null }))!
+    assert.equal(p.label, "Did not play")
+    assert.equal(p.filled, 0)
+    assert.equal(p.value, null)
+})
+
+test("mid-game a player on nothing is on nought, not unknown", () => {
+    // The backend records the zero; this asserts the bar treats it as a real value rather
+    // than as an absence, so a leg that has not started moving still shows.
+    const p = pickProgress(pick({ direction: OVER, live_state: "in", live_value: 0 }))!
+    assert.equal(p.value, 0)
+    assert.equal(p.filled, 0)
+    assert.equal(p.color, colors.warning)
 })
