@@ -9,6 +9,7 @@ import { FAB_BOTTOM, FAB_SIZE } from "@/components/parlays/common"
 import { GetSeasonParlaysSortParam, ParlayState, PickResponseData, UpdateParlayRequestData } from "@/api"
 import { ParlaysProvider } from "@/contexts/parlaysContext"
 import { useGamblingSeasonContext } from "@/contexts/gamblingSeasonContext"
+import { usePerformancesContext } from "@/contexts/performancesContext"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import FontAwesome from "react-native-vector-icons/FontAwesome"
 import CreateParlayModal from "@/components/parlays/modals/CreateParlayModal"
@@ -23,6 +24,7 @@ interface Props {
 export default function ParlaysView(props: Props) {
 
     const { gamblerId } = useGamblingSeasonContext()
+    const { reload: reloadPerformances } = usePerformancesContext()
 
     const [activeTab, setActiveTab] = useState<ParlayTab>("Building")
     const [isModalVisible, setIsModalVisible] = useState(false)
@@ -153,10 +155,20 @@ export default function ParlaysView(props: Props) {
         }
     }
 
+    /**
+     * Everything on this screen that the server decides.
+     *
+     * Performances as well as the lists, because closing a lay changes both and only one
+     * of them used to be re-read. This runs after every write here, so the season total
+     * above the closed list, the loss ledger and the leaderboard went on showing what they
+     * said before the lay was settled — until the app was restarted, which is not a
+     * refresh anybody should have to discover.
+     */
     function refreshAllParlays() {
         refreshBuildingParlays()
         refreshOpenParlays()
         refreshClosedParlays()
+        reloadPerformances()
     }
 
     function refreshParlay(parlayId: number) {
