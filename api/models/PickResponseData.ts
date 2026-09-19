@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { PickListPlacementResponseData } from './PickListPlacementResponseData';
 import type { PickReactionResponseData } from './PickReactionResponseData';
 import type { PickResult } from './PickResult';
 import type { PickVetoResponseData } from './PickVetoResponseData';
@@ -26,5 +27,6 @@ export type PickResponseData = {
     live_state: (string | null);
     live_detail: (string | null);
     live_synced_at: (string | null);
+    list_placements: Array<PickListPlacementResponseData>;
 };
 

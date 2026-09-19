@@ -8,6 +8,7 @@ import { View } from "react-native";
 import { GamblingSeasonProvider } from "@/contexts/gamblingSeasonContext";
 import { PerformancesProvider } from "@/contexts/performancesContext";
 import AnalyticsView from "./AnalyticsView";
+import ListsView from "./ListsView";
 import ActivityLoader from "@/components/reusable/ActivityLoader";
 import useApiActionState from "@/composables/useApiActionState";
 import { useLoadingState } from "@/composables/useLoadingState";
@@ -18,6 +19,7 @@ type SeasonViewRouteProps = RouteProp<MainStackParamList, "Season">
 
 type SeasonTabsParamList = {
     Parlays: undefined,
+    Lists: undefined,
     Analytics: undefined
 }
 const Tab = createBottomTabNavigator<SeasonTabsParamList>()
@@ -85,6 +87,14 @@ export default function SeasonView() {
                     ),
                 }}>
                     {() => <ParlaysView seasonId={seasonId}/>}
+                </Tab.Screen>
+                <Tab.Screen name="Lists" options={{
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="clipboard-list-outline" size={size} color={color} />
+                    ),
+                }}>
+                    {() => <ListsView seasonId={seasonId}/>}
                 </Tab.Screen>
                 <Tab.Screen name="Analytics" options={{
                     headerShown: false,

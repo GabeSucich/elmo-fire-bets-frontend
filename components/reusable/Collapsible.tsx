@@ -23,6 +23,25 @@ export default function Collapsible({ expanded, duration = 250, children }: Prop
     const [contentHeight, setContentHeight] = useState<number | null>(null)
     const progress = useSharedValue(expanded ? 1 : 0)
 
+    /**
+     * Whether the measuring copy may mount yet.
+     *
+     * It is a second full render of the children, and a list of collapsed sections pays it
+     * for every one of them at once — a screen of ten closed lays was rendering a hundred
+     * pick slots to show ten headers, synchronously, in the same frame as the tab switch
+     * that asked for them. A frame's wait moves that off the critical path: the headers
+     * land immediately and the measuring happens after they are on screen.
+     *
+     * Starts true when already open, because an open section never mounts the copy at all.
+     */
+    const [mayMeasure, setMayMeasure] = useState(expanded)
+
+    useEffect(() => {
+        if (mayMeasure) return
+        const frame = requestAnimationFrame(() => setMayMeasure(true))
+        return () => cancelAnimationFrame(frame)
+    }, [mayMeasure])
+
     useEffect(() => {
         progress.value = withTiming(expanded ? 1 : 0, { duration })
     }, [expanded, duration, progress])
@@ -47,7 +66,9 @@ export default function Collapsible({ expanded, duration = 250, children }: Prop
 
     return (
         <Animated.View style={animatedStyle}>
-            {contentHeight === null && (
+            {/* Only while shut, and only once a frame has passed. An open section needs no
+                copy at all: the real children below are in flow and measure themselves. */}
+            {contentHeight === null && !expanded && mayMeasure && (
                 <View
                     style={{ position: 'absolute', left: 0, right: 0, opacity: 0 }}
                     pointerEvents="none"

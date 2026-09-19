@@ -64,6 +64,19 @@ export default function PickEntryFlow({
         if (fallback.current) clearTimeout(fallback.current)
     }, [])
 
+    // Whether this slot has ever been opened. Until it has, the flow renders nothing.
+    //
+    // Both sheets below are native Modals, mounted whether or not they are showing, and
+    // this flow sits in every pick slot on the screen — so a closed list of ten lays was
+    // building a hundred hidden Modals, each with its own ToastHost, before anybody asked
+    // to enter a pick. Once opened it stays mounted for the life of the slot, so none of
+    // the hand-off timing below is affected: a sheet still dismisses with both sheets in
+    // place. The only thing that changes is what a slot nobody ever taps costs to render.
+    const [everOpened, setEverOpened] = useState(open !== null)
+    useEffect(() => {
+        if (open !== null) setEverOpened(true)
+    }, [open])
+
     useEffect(() => {
         if (open === null) {
             setSurface(null)
@@ -102,6 +115,9 @@ export default function PickEntryFlow({
         setSurface(null)
         onClose()
     }
+
+    // After every hook, so the hook order never changes with it.
+    if (!everOpened) return null
 
     return (
         <>

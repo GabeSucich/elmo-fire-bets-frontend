@@ -15,9 +15,7 @@ import { TileSize } from "../reusable/tiles/common"
 import FeatherIcon from 'react-native-vector-icons/Feather'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { colors, typography, spacing } from "@/theme/colors"
-import { usePerformancesContext } from "@/contexts/performancesContext"
-import { findBanListEntry } from "@/util/trends"
-import BanListAlert from "./BanListAlert"
+import PickListBadge from "./PickListBadge"
 import PickReactionBar from "./PickReactionBar"
 import PickProgressBar from "./PickProgressBar"
 import PickThreadModal from "./modals/PickThreadModal"
@@ -70,8 +68,6 @@ export default function GamblerParlaySlot(props: Props) {
         refreshParlay,
         patchPick
     } = useParlaysContext()
-
-    const { performanceFor } = usePerformancesContext()
 
     const parlayId = props.parlay.id
 
@@ -188,11 +184,9 @@ export default function GamblerParlaySlot(props: Props) {
 
     const vetoedExtraInfo = props.pick ? getVetoedExtraInfo(props.pick) : null
 
-    // Only while the parlay is still being built — once it is locked in, the warning is
-    // just noise about a decision nobody can change.
-    const banListPlacement = isBuilding && props.pick
-        ? findBanListEntry(performanceFor(props.gambler.id), props.pick.prop_bet_target.id)
-        : null
+    // Building and open both carry them; a closed lay does not, and the server leaves them
+    // off it rather than trusting every screen to remember.
+    const listPlacements = props.pick?.list_placements ?? []
 
     return (
         <View style={{ paddingVertical: spacing.xs }}>
@@ -210,6 +204,19 @@ export default function GamblerParlaySlot(props: Props) {
                         }}>
                             {props.pick.prop_bet_target.player_name ?? props.pick.prop_bet_target.team_name}
                         </Text>
+                        {/* Beside the name rather than down with the line: what a list
+                            holds is a player, and the mark reads as being about him. */}
+                        {listPlacements.map(placement => (
+                            <View key={placement.pick_list_id} style={{ marginLeft: spacing.sm }}>
+                                <PickListBadge
+                                    placement={placement}
+                                    targetName={
+                                        props.pick!.prop_bet_target.player_name
+                                        ?? props.pick!.prop_bet_target.team_name
+                                    }
+                                />
+                            </View>
+                        ))}
                     </>
                 ) : (
                     <Text style={{ color: colors.textMuted, ...typography.body, fontStyle: 'italic' }}>
@@ -317,13 +324,6 @@ export default function GamblerParlaySlot(props: Props) {
                     { props.pick &&
                         <AnimatedPickDisplay pick={props.pick} size={props.pickTileSize} hidden={!!props.hidePickDisplay} />
                     }
-                    {banListPlacement && (
-                        <BanListAlert
-                            gamblerName={displayName}
-                            placement={banListPlacement}
-                            isOwnPick={isMyGambler}
-                        />
-                    )}
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 0 }}>
                     {vetoedExtraInfo && (
@@ -373,7 +373,13 @@ export default function GamblerParlaySlot(props: Props) {
                 onClose={() => setEntrySurface(null)}
                 onPickSaved={handlePickSaved}
             />
-            {props.pick && (
+            {/* All three of these are gated on being open, like PickThreadModal above and
+                unlike how they used to sit here. A Modal is a real native view at
+                visible={false} too, and AppModal mounts a ToastHost inside each one — so a
+                card of five picks was building fifteen of them, and a tab switch rebuilds
+                every card on screen because VisibleParlays is keyed by the tab. None of
+                the three holds state worth preserving while shut. */}
+            {props.pick && vetoModalVisible && (
                 <PickVetoModal
                     visible={vetoModalVisible}
                     onClose={() => setVetoModalVisible(false)}
@@ -381,7 +387,7 @@ export default function GamblerParlaySlot(props: Props) {
                     onVetoCreated={handleVetoCreated}
                 />
             )}
-            {props.pick && (
+            {props.pick && resultEditorVisible && (
                 <PickResultEditorModal
                     visible={resultEditorVisible}
                     onClose={() => setResultEditorVisible(false)}
@@ -392,7 +398,7 @@ export default function GamblerParlaySlot(props: Props) {
                     }}
                 />
             )}
-            {props.pick?.veto && (
+            {props.pick?.veto && vetoStatusVisible && (
                 <VetoStatusModal
                     visible={vetoStatusVisible}
                     onClose={() => setVetoStatusVisible(false)}

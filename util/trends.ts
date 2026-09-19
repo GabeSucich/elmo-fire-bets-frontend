@@ -76,10 +76,13 @@ function targetSummaries(performance: GamblerPerformance): Summary[] {
 }
 
 /**
- * The players a gambler is worst on. Shared by the Trends section and the ban-list
- * warning shown against a pick, so the two can never disagree about who is on it.
+ * The players a gambler is worst on.
+ *
+ * Called the ban list until the league got a real one — an actual list people put players
+ * on by hand, which now owns both that name and the warning mark on a pick. This is a
+ * record, not a decision anybody made, so it stays where a record belongs: in Trends.
  */
-export function buildBanList(performance: GamblerPerformance): Summary[] {
+export function buildIceCold(performance: GamblerPerformance): Summary[] {
     return worstOf(targetSummaries(performance))
 }
 
@@ -87,20 +90,4 @@ export function buildOlTrusties(performance: GamblerPerformance): Summary[] {
     return bestOf(targetSummaries(performance))
 }
 
-export type BanListPlacement = {
-    entry: Summary
-    /** 1 is the worst record on the list. */
-    rank: number
-}
 
-/** The ban-list entry for a target, and where it places, if that gambler has one. */
-export function findBanListEntry(
-    performance: GamblerPerformance | undefined,
-    propBetTargetId: number
-): BanListPlacement | null {
-    if (!performance) return null
-    const banList = buildBanList(performance)
-    const index = banList.findIndex(entry => entry.key === String(propBetTargetId))
-    if (index === -1) return null
-    return { entry: banList[index], rank: index + 1 }
-}

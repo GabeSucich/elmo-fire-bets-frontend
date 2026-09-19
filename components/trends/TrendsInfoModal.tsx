@@ -55,8 +55,8 @@ function buildGroups({
                     description: `The players you hit on the most, once you have picked them ${minTargetPicks} times.`,
                 },
                 {
-                    emoji: "🚫",
-                    title: "Ban List",
+                    emoji: "🥶",
+                    title: "Ice Cold",
                     description: `The players you hit on the least, same ${minTargetPicks}-pick minimum.`,
                 },
             ],

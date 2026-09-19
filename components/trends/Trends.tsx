@@ -9,7 +9,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import TrendsInfoModal from "./TrendsInfoModal";
 import {
     bestOf,
-    buildBanList,
+    buildIceCold,
     buildOlTrusties,
     LIST_SIZE,
     MIN_TARGET_PICKS,
@@ -49,7 +49,7 @@ type GamblerTrends = {
     gamblerId: number
     gamblerName: string
     olTrusties: Summary[]
-    banList: Summary[]
+    iceCold: Summary[]
 }
 
 type GamblerPropTrends = {
@@ -77,7 +77,7 @@ function buildGamblerTrends(
         gamblerId,
         gamblerName,
         olTrusties: buildOlTrusties(performance),
-        banList: buildBanList(performance),
+        iceCold: buildIceCold(performance),
     }
 }
 
@@ -215,7 +215,7 @@ export default function Trends(props: Props) {
                                 <Text style={styles.gamblerName}>{trend.gamblerName}</Text>
 
                                 <TrendSection title="Ol' Trusties" emoji={"🤝"} items={trend.olTrusties} showRate showTotal />
-                                <TrendSection title="Ban List" emoji={"🚫"} items={trend.banList} showRate showTotal />
+                                <TrendSection title="Ice Cold" emoji={"🥶"} items={trend.iceCold} showRate showTotal />
                             </View>
                         ))}
                     </>

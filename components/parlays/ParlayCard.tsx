@@ -158,19 +158,22 @@ export function ParlayCard({ parlay, editable, pickTileSize, footer, disableResu
           {footer}
       </Collapsible>
 
-      <ParlayEditorModal
+      {/* Mounted only when open. These are two more native views per card on a list that
+          is rebuilt from scratch on every tab switch, and the editor's form is better off
+          starting clean each time it is opened anyway. */}
+      {editModalVisible && <ParlayEditorModal
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         parlay={parlay}
-      />
-      <DeleteParlayModal
+      />}
+      {deleteModalVisible && <DeleteParlayModal
         visible={deleteModalVisible}
         onCancel={() => setDeleteModalVisible(false)}
         onDelete={() => {
           setDeleteModalVisible(false)
           deleteParlay(parlay.id)
         }}
-      />
+      />}
     </View>
   );
 }
