@@ -8,6 +8,7 @@ type Props = {
     visible: boolean
     onClose: () => void
     minTargetPicks: number
+    minPerfectTargetPicks: number
     minPropPicks: number
     minTDWins: number
     minTDLosses: number
@@ -26,6 +27,7 @@ type TrendGroup = {
 
 function buildGroups({
     minTargetPicks,
+    minPerfectTargetPicks,
     minPropPicks,
     minTDWins,
     minTDLosses,
@@ -52,12 +54,12 @@ function buildGroups({
                 {
                     emoji: "🤝",
                     title: "Ol' Trusties",
-                    description: `The players you hit on the most, once you have picked them ${minTargetPicks} times.`,
+                    description: `The players you hit on the most, once you have picked them ${minTargetPicks} times. Short of ${minTargetPicks}, a clean ${minPerfectTargetPicks}-pick record fills out the list.`,
                 },
                 {
                     emoji: "🥶",
                     title: "Ice Cold",
-                    description: `The players you hit on the least, same ${minTargetPicks}-pick minimum.`,
+                    description: `The players you hit on the least, same ${minTargetPicks}-pick minimum, and the same top-up from players you are 0 for ${minPerfectTargetPicks} on.`,
                 },
             ],
         },

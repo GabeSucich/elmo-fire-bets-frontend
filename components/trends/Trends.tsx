@@ -12,6 +12,7 @@ import {
     buildIceCold,
     buildOlTrusties,
     LIST_SIZE,
+    MIN_PERFECT_TARGET_PICKS,
     MIN_TARGET_PICKS,
     qualifying,
     Summary,
@@ -197,6 +198,7 @@ export default function Trends(props: Props) {
                 visible={infoVisible}
                 onClose={() => setInfoVisible(false)}
                 minTargetPicks={MIN_TARGET_PICKS}
+                minPerfectTargetPicks={MIN_PERFECT_TARGET_PICKS}
                 minPropPicks={MIN_PROP_PICKS}
                 minTDWins={MIN_TD_WINS}
                 minTDLosses={MIN_TD_LOSSES}
