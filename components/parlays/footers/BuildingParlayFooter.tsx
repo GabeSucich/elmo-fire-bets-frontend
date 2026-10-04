@@ -6,9 +6,13 @@ import LockConfirmModal from "../modals/LockConfirmModal";
 import PickCorrectionsModal from "../modals/PickCorrectionsModal";
 import ClaimConfirmModal from "../modals/ClaimConfirmModal";
 import PendingVetoConfirmModal from "../modals/PendingVetoConfirmModal";
+import ParlayAssessmentModal from "../modals/ParlayAssessmentModal";
 import ActionButton from "../../reusable/ActionButton";
 import { useParlaysContext } from "@/contexts/parlaysContext";
-import { spacing } from "@/theme/colors";
+import { colors, spacing } from "@/theme/colors";
+
+/** Mirrors MIN_PICKS in services/assessments/service.py. */
+const MIN_ANALYSIS_PICKS = 3
 
 type Props = {
     parlay: ParlayResponseData
@@ -19,6 +23,7 @@ export default function BuildingParlayFooter({ parlay }: Props) {
     const [slipVisible, setSlipVisible] = useState(false)
     const [vetoConfirmVisible, setVetoConfirmVisible] = useState(false)
     const [claimConfirmVisible, setClaimConfirmVisible] = useState(false)
+    const [assessmentVisible, setAssessmentVisible] = useState(false)
 
     const { gamblerId, gamblers } = useGamblingSeasonContext()
     const {
@@ -77,12 +82,37 @@ export default function BuildingParlayFooter({ parlay }: Props) {
 
     if (parlay.state !== ParlayState.BUILDING) return null
 
+    // Open to anyone in the season, owner or not: it only says things. Not offered below
+    // three picks, which is the server's minimum — fewer is not much of a slate.
+    // Bottom left, apart from the lay's own actions on the right: the auto margin pushes it
+    // there and leaves the row right-aligned when it is not shown.
+    const assessButton = parlay.picks.length >= MIN_ANALYSIS_PICKS ? (
+        <View style={{ marginRight: 'auto' }}>
+            <ActionButton
+                icon="flask"
+                iconColor={colors.success}
+                accessibilityLabel="Pick analysis"
+                onPress={() => setAssessmentVisible(true)}
+                color={colors.buttonSecondary}
+            />
+        </View>
+    ) : null
+    const assessmentModal = (
+        <ParlayAssessmentModal
+            visible={assessmentVisible}
+            parlay={parlay}
+            dismissModal={() => setAssessmentVisible(false)}
+        />
+    )
+
     if (isMyOwnedParlay) {
         return (
             <View style={{
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
-                marginTop: spacing.md,
+                marginTop: spacing.md, gap: spacing.sm,
             }}>
+                {assessButton}
+                {assessmentModal}
                 {/* An icon rather than a label, but still a filled button: it is the primary
                     action on a building lay, and the confirmation names it. */}
                 <ActionButton
@@ -127,8 +157,10 @@ export default function BuildingParlayFooter({ parlay }: Props) {
     return (
         <View style={{
             flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
-            marginTop: spacing.md,
+            marginTop: spacing.md, gap: spacing.sm,
         }}>
+            {assessButton}
+            {assessmentModal}
             <ActionButton text={`Claim from ${ownerName}`} onPress={() => setClaimConfirmVisible(true)} />
 
 

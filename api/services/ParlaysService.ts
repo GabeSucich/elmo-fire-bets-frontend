@@ -272,10 +272,11 @@ export class ParlaysService {
      * Sync Parlay Progress Endpoint
      * Read this parlay's legs off the live boxscore.
      *
-     * Open to anyone in the season, like the season pick sync: it reads a public feed and
-     * writes only `live_*` columns, so there is nothing here one gambler can do to another's
-     * pick. It never touches `result` — void, push and bozo are judgements, and a settled
-     * result entered by hand must not be overwritten by a number scraped mid-game.
+     * Open to anyone in the season, like the season pick sync: it reads a public feed, and
+     * the only results it writes are the ones a final boxscore decides outright — Win, Loss
+     * or Push on a leg with no result yet. A result entered by hand is never overwritten, a
+     * player missing from a final boxscore is left for a person to call void, and BOZO is
+     * still decided at finalization.
      * @param parlayId
      * @returns SyncParlayProgressResponseData Successful Response
      * @throws ApiError

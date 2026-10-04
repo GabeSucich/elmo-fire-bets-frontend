@@ -12,6 +12,7 @@ import type { ParlayResponseData } from './ParlayResponseData';
 export type SyncParlayProgressResponseData = {
     parlay: ParlayResponseData;
     picks_synced: number;
+    picks_settled: number;
     skipped: Array<string>;
     ran: boolean;
 };

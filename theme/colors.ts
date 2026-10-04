@@ -42,6 +42,14 @@ export const colors = {
 
   // Specific element colors
   slateTag: '#6366f1',
+
+  // Pick Analysis concern tags. Kept off red, amber and grey, which the signal strength
+  // beside them already uses.
+  tagPastTrend: '#60a5fa',
+  tagGameScript: '#a78bfa',
+  tagWeather: '#22d3ee',
+  tagCompetingLines: '#f472b6',
+  tagSameGame: '#34d399',
   inputBackground: '#1f2937',
   inputBorder: '#4b5563',
 }

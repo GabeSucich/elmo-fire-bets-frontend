@@ -40,6 +40,8 @@ type Props = {
     text?: string
     /** MaterialCommunityIcons name, rendered in place of the label. */
     icon?: string
+    /** The glyph's colour. White by default, like a label. */
+    iconColor?: string
     /** Spoken label for an icon-only button, which has no text to read. */
     accessibilityLabel?: string
     onPress: () => void
@@ -56,6 +58,7 @@ type Props = {
 export default function ActionButton({
     text,
     icon,
+    iconColor = colors.textPrimary,
     accessibilityLabel,
     onPress,
     color = colors.accent,
@@ -91,7 +94,7 @@ export default function ActionButton({
                         <MaterialCommunityIcons
                             name={icon}
                             size={ICON_SIZE}
-                            color={colors.textPrimary}
+                            color={iconColor}
                             style={{ lineHeight: ICON_SIZE }}
                         />
                     ) : (
