@@ -68,11 +68,13 @@ export default function ParlayAssessmentModal({ visible, dismissModal, parlay }:
         // analysis itself, so the wait reads as one thing rather than a bare spinner that
         // gains a caption partway through.
         if (requesting || autoStarting || (!assessment && loading)) {
+            // Centred in the card's fixed body. ActivityLoader fills its container, which is
+            // why it needs one with a real height: in a card sized to its content it
+            // collapsed, the spinner spilled out and the caption under it went missing.
             return (
-                <ActivityLoader
-                    text="Analyzing picks against past trends..."
-                    containerStyle={{ paddingVertical: spacing.xxl }}
-                />
+                <View style={{ flex: 1, justifyContent: 'center', paddingVertical: spacing.xl }}>
+                    <ActivityLoader text="Analyzing picks against past trends..." />
+                </View>
             )
         }
         if (!assessment) {
@@ -86,7 +88,7 @@ export default function ParlayAssessmentModal({ visible, dismissModal, parlay }:
                 : assessment.request_blocked_reason ?? "No analysis yet."} />
         }
         return (
-            <ScrollView style={{ width: '100%' }}>
+            <ScrollView style={{ flex: 1, width: '100%' }}>
                 {showParlay && (
                     <AssessmentSlotCard
                         slot={assessment.parlay}
@@ -119,9 +121,11 @@ export default function ParlayAssessmentModal({ visible, dismissModal, parlay }:
                 alignItems: 'center',
                 backgroundColor: colors.overlay,
             }}>
+                {/* A fixed height rather than one that follows the content: expanding a
+                    concern scrolls inside the card instead of resizing the whole modal. */}
                 <View style={{
                     width: '90%',
-                    maxHeight: '85%',
+                    height: '80%',
                     backgroundColor: colors.backgroundSecondary,
                     borderRadius: 20,
                     padding: spacing.xl,
@@ -140,7 +144,9 @@ export default function ParlayAssessmentModal({ visible, dismissModal, parlay }:
                         </Pressable>
                     </View>
 
-                    {body()}
+                    <View style={{ flex: 1 }}>
+                        {body()}
+                    </View>
 
                     {assessment && !requesting && canReanalyze(assessment) && (
                         <View style={{ marginTop: spacing.md, alignItems: 'flex-end' }}>
